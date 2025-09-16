@@ -41,7 +41,15 @@ h1 {
 .controls-main-buttons {
     display: grid;
     grid-template-columns: 1fr 2fr;
+    grid-template-rows: 1fr 1fr;
     gap: 10px;
+}
+
+.share-buttons {
+    display: flex;
+    gap: 5px;
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
 }
 
 #textInput {
@@ -80,12 +88,27 @@ h1 {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
-    grid-column: 2 / 3;
-    grid-row: 2 / 2;
+    flex: 1;
+}
+
+#qrButton {
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #17a2b8; /* Cor azul para QR Code */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex: 1;
 }
 
 #shareButton:hover {
     background-color: #1e7e34;
+}
+
+#qrButton:hover {
+    background-color: #138496;
 }
 
 #shareButton.copied {
@@ -172,4 +195,468 @@ legend {
     font-size: 14px;
 }
 
-/* Adicionaremos mais estilos conforme os componentes da UI forem adicionados */ 
+/* Adicionaremos mais estilos conforme os componentes da UI forem adicionados */
+
+/* Audio feedback and error styling */
+.audio-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 12px;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.audio-ready #textInput {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.audio-ready::before {
+    content: "\2713 Audio Ready";
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background-color: #28a745;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1000;
+    animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0; }
+    20%, 80% { opacity: 1; }
+}
+
+/* Loading state for buttons */
+.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.loading::after {
+    content: "...";
+    animation: dots 1.5s steps(5, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+    40% { color: white; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+    60% { text-shadow: .25em 0 0 white, .5em 0 0 rgba(0,0,0,0); }
+    80%, 100% { text-shadow: .25em 0 0 white, .5em 0 0 white; }
+}
+
+/* Preset selector styling */
+.preset-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.preset-selector label {
+    font-weight: 500;
+    color: #495057;
+    min-width: 120px;
+}
+
+.preset-selector select {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+}
+
+.preset-selector select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Storage section styling */
+.storage-button {
+    padding: 8px 16px;
+    margin: 4px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.storage-button:hover {
+    background-color: #0056b3;
+}
+
+.storage-button.secondary {
+    background-color: #6c757d;
+}
+
+.storage-button.secondary:hover {
+    background-color: #545b62;
+}
+
+.storage-control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.storage-control label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.storage-control select {
+    padding: 6px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+}
+
+/* Storage message styling */
+.storage-message {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-weight: 500;
+    display: none;
+    animation: slideInDown 0.3s ease-out;
+}
+
+.storage-message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.storage-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.storage-message.warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+@keyframes slideInDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* QR Code Modal */
+.qr-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.qr-modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.qr-modal h3 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.qr-modal canvas {
+    margin: 15px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.qr-modal-close {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+.qr-modal-close:hover {
+    background-color: #545b62;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        width: 95vw;
+        height: auto;
+        min-height: 95vh;
+        padding: 15px;
+        gap: 20px;
+    }
+    
+    h1 {
+        grid-column: 1;
+        grid-row: 1;
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+    
+    .controls-main {
+        grid-column: 1;
+        grid-row: 2;
+        order: 1;
+    }
+    
+    .settings {
+        grid-column: 1;
+        grid-row: 3;
+        order: 2;
+        padding-top: 15px;
+    }
+    
+    .controls-main-buttons {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+    }
+    
+    #playPauseButton {
+        grid-column: 1;
+        grid-row: 1;
+        margin-bottom: 10px;
+        font-size: 18px;
+        padding: 12px;
+        min-height: 50px;
+    }
+    
+    #shareUrlInput {
+        grid-column: 1;
+        grid-row: 2;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+    
+    .share-buttons {
+        grid-column: 1;
+        grid-row: 3;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    #shareButton,
+    #qrButton {
+        font-size: 16px;
+        padding: 12px;
+        min-height: 45px;
+    }
+    
+    #textInput {
+        font-size: 16px;
+        min-height: 150px;
+        padding: 12px;
+    }
+    
+    /* Touch-friendly controls */
+    .control-group select,
+    .slider-control input[type="range"] {
+        min-height: 44px;
+        font-size: 16px;
+        padding: 8px 12px;
+    }
+    
+    .slider-control {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .slider-control label {
+        flex-basis: auto;
+        margin-bottom: 4px;
+    }
+    
+    .slider-control input[type="range"] {
+        width: 100%;
+        margin: 8px 0;
+    }
+    
+    .slider-control span {
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    
+    .storage-button {
+        min-height: 44px;
+        font-size: 16px;
+        margin: 6px 0;
+    }
+    
+    .preset-selector {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .preset-selector label {
+        min-width: auto;
+    }
+    
+    .preset-selector select {
+        min-height: 44px;
+        font-size: 16px;
+    }
+    
+    .storage-control select {
+        min-height: 44px;
+        font-size: 16px;
+    }
+    
+    fieldset {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+    
+    legend {
+        font-size: 16px;
+        padding: 0 8px;
+    }
+    
+    /* QR Modal mobile adjustments */
+    .qr-modal-content {
+        width: 95%;
+        max-width: 350px;
+        padding: 15px;
+    }
+    
+    .qr-modal canvas {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .qr-modal-close {
+        min-height: 44px;
+        font-size: 16px;
+        padding: 12px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        width: 98vw;
+        padding: 10px;
+        gap: 15px;
+    }
+    
+    h1 {
+        font-size: 20px;
+    }
+    
+    #textInput {
+        min-height: 120px;
+    }
+    
+    .controls-main-buttons {
+        gap: 8px;
+    }
+    
+    .share-buttons {
+        gap: 6px;
+    }
+    
+    fieldset {
+        padding: 10px;
+    }
+    
+    .slider-control input[type="range"] {
+        height: 40px;
+    }
+}
+
+/* Mobile device specific styles */
+.mobile-device {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.mobile-device input, .mobile-device textarea {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Touch feedback */
+.touch-active {
+    transform: scale(0.95);
+    opacity: 0.8;
+    transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+button.touch-active {
+    background-color: #004085 !important;
+}
+
+.slider-control input[type="range"].touch-active {
+    transform: scale(1.05);
+}
+
+/* Keyboard open adjustments */
+.keyboard-open .container {
+    height: auto;
+    min-height: 50vh;
+}
+
+.keyboard-open .settings {
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+/* Performance optimizations for mobile */
+.mobile-device * {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+/* PWA support */
+@media (display-mode: standalone) {
+    body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+} 

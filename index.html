@@ -5,8 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Texto para MIDI</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Incluindo Tone.js via CDN -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Text2MIDI">
+    <!-- Incluindo Tone.js via CDN - Versão compatível -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <!-- QR Code library for mobile sharing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script>
+        // Check Tone.js availability and version
+        if (typeof Tone === 'undefined') {
+            console.error('Tone.js não foi carregado corretamente');
+            document.addEventListener('DOMContentLoaded', () => {
+                const container = document.querySelector('.container');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'audio-error';
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'Erro: Biblioteca de áudio não carregada. Verifique sua conexão com a internet.';
+                container.prepend(errorDiv);
+            });
+        } else {
+            console.log('Tone.js version:', Tone.version || 'Unknown');
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -17,7 +40,10 @@
             <div class="controls-main-buttons">
                 <button id="playPauseButton">Play</button>
                 <input type="text" id="shareUrlInput" readonly placeholder="Link compartilhável aparecerá aqui...">
-                <button id="shareButton">Compartilhar</button>
+                <div class="share-buttons">
+                    <button id="shareButton">Compartilhar</button>
+                    <button id="qrButton">QR Code</button>
+                </div>
             </div>
         </div>
 
@@ -27,6 +53,18 @@
     </div>
 
     <script src="js/config.js"></script>
+    <!-- Advanced Linguistic Analysis Engines -->
+    <script src="js/grammar.js"></script>
+    <script src="js/musical-grammar.js"></script>
+    <script src="js/harmonic-engine.js"></script>
+    <script src="js/phonetic-engine.js"></script>
+    <script src="js/stress-analyzer.js"></script>
+    <script src="js/prosodic-engine.js"></script>
+    <script src="js/linguistic-integration.js"></script>
+    <script src="js/linguistic-tests.js"></script>
+    <!-- Core Application Modules -->
+    <script src="js/storage.js"></script>
+    <script src="js/touch.js"></script>
     <script src="js/audio.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/main.js"></script>
