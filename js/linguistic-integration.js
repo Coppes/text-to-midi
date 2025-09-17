@@ -351,7 +351,7 @@ const LinguisticIntegration = (() => {
 
             // Add bass line if available
             if (processedResult.bassLine) {
-                scheduleBasLine(processedResult.bassLine, currentTime);
+                scheduleBassLine(processedResult.bassLine, currentTime);
             }
 
             Tone.Transport.start("+0.1");
@@ -369,7 +369,7 @@ const LinguisticIntegration = (() => {
      * @param {Array} bassLine - Bass line notes
      * @param {number} totalDuration - Total duration of main sequence
      */
-    function scheduleBasLine(bassLine, totalDuration) {
+    function scheduleBassLine(bassLine, totalDuration) {
         if (!bassLine.length) return;
 
         const chordDuration = totalDuration / bassLine.length;
