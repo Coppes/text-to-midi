@@ -37,6 +37,12 @@
 
         <div class="controls-main">
             <textarea id="textInput" placeholder="Digite seu texto aqui..."></textarea>
+            <div class="text-display" id="textDisplay">
+                <div style="color: #999; font-style: italic; text-align: center; padding: 20px;">
+                    O texto será destacado aqui durante a reprodução.
+                    <br><small>Digite algum texto acima para ver o destaque visual.</small>
+                </div>
+            </div>
             <div class="controls-main-buttons">
                 <button id="playPauseButton">Play</button>
                 <input type="text" id="shareUrlInput" readonly placeholder="Link compartilhável aparecerá aqui...">
@@ -48,7 +54,7 @@
         </div>
 
         <div class="settings">
-            <!-- Dropdowns e controles de parâmetros serão adicionados aqui nas próximas fases -->
+            <!-- UI controls will be dynamically generated here -->
         </div>
     </div>
 
@@ -62,6 +68,7 @@
     <script src="js/prosodic-engine.js"></script>
     <script src="js/linguistic-integration.js"></script>
     <script src="js/linguistic-tests.js"></script>
+    <script src="js/text-highlighter.js"></script>
     <!-- Core Application Modules -->
     <script src="js/storage.js"></script>
     <script src="js/touch.js"></script>

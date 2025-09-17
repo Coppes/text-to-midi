@@ -14,6 +14,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareButton = document.getElementById('shareButton');
     const qrButton = document.getElementById('qrButton');
     const shareUrlInput = document.getElementById('shareUrlInput');
+    const textDisplay = document.getElementById('textDisplay');
+    
+    // Initialize text highlighter immediately if elements are available
+    if (textDisplay) {
+        console.log('textDisplay element found, initializing highlighter...');
+        
+        // Try immediate initialization
+        const initResult = initializeTextHighlighter();
+        
+        if (!initResult) {
+            // If immediate init failed, try again after a short delay
+            setTimeout(() => {
+                console.log('Retrying text highlighter initialization...');
+                const retryResult = initializeTextHighlighter();
+                if (!retryResult) {
+                    console.warn('Text highlighter initialization failed - using basic mode');
+                    showFallbackTextDisplay();
+                }
+            }, 100);
+        }
+    } else {
+        console.error('textDisplay element not found!');
+        // Try to find it after DOM is fully loaded
+        setTimeout(() => {
+            const laterTextDisplay = document.getElementById('textDisplay');
+            if (laterTextDisplay) {
+                console.log('textDisplay found on retry, initializing...');
+                textDisplay = laterTextDisplay;
+                initializeTextHighlighter();
+            }
+        }, 200);
+    }
 
     let currentScale = AppConfig.DEFAULT_SCALE;
     let currentInstrument = AppConfig.DEFAULT_INSTRUMENT;
@@ -22,6 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentMod = { ...AppConfig.EFFECTS.defaultModulation };
     let currentTempo = AppConfig.DEFAULT_TEMPO;
     let currentRhythm = 'uniform';
+    let currentAnalysisMode = 'COMPLETE';
+    let currentHighlightMode = 'character';
+    let currentDialect = 'carioca';
+    let isEnhancedMode = false;
 
     // Inicializa o áudio na primeira interação do usuário com a página
     // Isso é crucial para políticas de autoplay dos navegadores
@@ -30,6 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
             AudioManager.initializeAudio().then(() => {
                 audioInitializedByInteraction = true;
                 console.log("Áudio inicializado após interação do usuário.");
+                // Initialize text highlighter after audio is ready
+                initializeTextHighlighter();
                 // Show visual feedback that audio is ready
                 document.body.classList.add('audio-ready');
             }).catch(error => {
@@ -61,11 +99,411 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
     }
 
+    /**
+     * Initializes the text highlighter system with enhanced error handling
+     */
+    function initializeTextHighlighter() {
+        console.log('Initializing text highlighter system...');
+        
+        // Check for required elements
+        if (!textDisplay) {
+            console.error('textDisplay element not found - text highlighting disabled');
+            return false;
+        }
+        
+        // Check for TextHighlighter availability
+        if (typeof TextHighlighter === 'undefined') {
+            console.warn('TextHighlighter module not loaded - using fallback mode');
+            showFallbackTextDisplay();
+            return false;
+        }
+        
+        try {
+            // Initialize the text highlighter
+            TextHighlighter.initialize(textDisplay);
+            console.log('✓ Text Highlighter initialized successfully');
+            
+            // Set up linguistic integration if available
+            if (typeof LinguisticIntegration !== 'undefined') {
+                isEnhancedMode = true;
+                console.log('✓ Enhanced linguistic mode enabled');
+                
+                // Configure linguistic integration
+                LinguisticIntegration.setAnalysisMode(currentAnalysisMode);
+                LinguisticIntegration.setDialect(currentDialect);
+                LinguisticIntegration.setMusicalKey('C');
+            } else {
+                console.warn('LinguisticIntegration not available - using basic character mode');
+                isEnhancedMode = false;
+            }
+            
+            // Set initial highlight mode
+            TextHighlighter.setHighlightMode(currentHighlightMode);
+            
+            // Prepare initial text if any exists
+            const initialText = textInput.value.trim();
+            if (initialText) {
+                console.log('Preparing initial text for highlighting:', initialText.substring(0, 50) + '...');
+                prepareTextForHighlighting();
+            } else {
+                showEmptyStateMessage();
+            }
+            
+            return true;
+            
+        } catch (error) {
+            console.error('Error initializing text highlighter:', error);
+            showFallbackTextDisplay();
+            return false;
+        }
+    }
+    
+    /**
+     * Shows fallback text display when TextHighlighter is not available
+     */
+    function showFallbackTextDisplay() {
+        if (!textDisplay) return;
+        
+        const text = textInput.value.trim();
+        if (text) {
+            textDisplay.innerHTML = `
+                <div style="padding: 15px; border: 1px solid #ffc107; background: #fff3cd; border-radius: 4px; text-align: center;">
+                    <div style="margin-bottom: 10px; line-height: 1.6;">${text}</div>
+                    <small style="color: #856404; font-style: italic;">💡 Modo básico - Sistema de destaque não disponível</small>
+                </div>
+            `;
+        } else {
+            showEmptyStateMessage();
+        }
+    }
+    
+    /**
+     * Shows empty state message in text display
+     */
+    function showEmptyStateMessage() {
+        if (!textDisplay) return;
+        
+        textDisplay.innerHTML = `
+            <div style="color: #999; font-style: italic; text-align: center; padding: 20px; line-height: 1.6;">
+                <span style="font-size: 1.2em;">🎵</span><br>
+                O texto será destacado aqui durante a reprodução.<br>
+                <small style="margin-top: 8px; display: block;">Digite algum texto acima para ver o destaque visual.</small>
+            </div>
+        `;
+    }
+    
+    /**
+     * Prepares the current text for highlighting display with enhanced error handling
+     */
+    function prepareTextForHighlighting() {
+        const text = textInput.value.trim();
+        
+        // Handle empty text
+        if (!text) {
+            showEmptyStateMessage();
+            return;
+        }
+        
+        // Check if TextHighlighter is available
+        if (typeof TextHighlighter === 'undefined') {
+            showFallbackTextDisplay();
+            return;
+        }
+        
+        try {
+            console.log(`Preparing text for highlighting: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+            
+            // Set current highlight mode
+            TextHighlighter.setHighlightMode(currentHighlightMode);
+            
+            let linguisticResult;
+            
+            // Try to use linguistic integration if available
+            if (typeof LinguisticIntegration !== 'undefined' && isEnhancedMode) {
+                try {
+                    LinguisticIntegration.setAnalysisMode(currentAnalysisMode);
+                    LinguisticIntegration.setDialect(currentDialect);
+                    linguisticResult = LinguisticIntegration.processText(text, currentScale);
+                    
+                    console.log(`✓ Linguistic analysis completed: ${currentAnalysisMode} mode`);
+                } catch (linguisticError) {
+                    console.warn('Linguistic integration failed, using basic mode:', linguisticError);
+                    linguisticResult = createBasicLinguisticResult(text);
+                }
+            } else {
+                // Create basic result for simple character highlighting
+                linguisticResult = createBasicLinguisticResult(text);
+                console.log('✓ Using basic character highlighting mode');
+            }
+            
+            // Prepare text for highlighting
+            TextHighlighter.prepareText(text, linguisticResult);
+            
+            // Add visual indicator for current mode
+            addHighlightModeIndicator();
+            
+            console.log(`✓ Text prepared: ${currentHighlightMode} mode, ${linguisticResult.finalSequence?.length || 0} elements`);
+            
+        } catch (error) {
+            console.error('Error preparing text for highlighting:', error);
+            
+            // Fallback: show text with basic character segmentation
+            if (textDisplay) {
+                const segments = text.split('').map((char, index) => 
+                    `<span class="char-segment" data-index="${index}">${char === ' ' ? '&nbsp;' : char}</span>`
+                ).join('');
+                
+                textDisplay.innerHTML = `
+                    <div style="padding: 15px; line-height: 1.8; border: 1px solid #dc3545; background: #f8d7da; border-radius: 4px;">
+                        <div style="margin-bottom: 10px;">${segments}</div>
+                        <small style="color: #721c24; font-style: italic;">
+                            ⚠️ Modo de emergência - Destaque limitado por caracteres
+                        </small>
+                    </div>
+                `;
+            }
+        }
+    }
+    
+    /**
+     * Creates basic linguistic result for fallback mode
+     * @param {string} text - Input text
+     * @returns {Object} Basic linguistic result object
+     */
+    function createBasicLinguisticResult(text) {
+        return {
+            finalSequence: text.split('').map((char, index) => ({
+                character: char,
+                note: char === ' ' ? null : 'C4', // null for spaces to create silence
+                duration: char === ' ' ? '8n' : '8n',
+                index: index,
+                type: 'character'
+            })),
+            processedText: text,
+            analysisMode: 'BASIC'
+        };
+    }
+    
+    /**
+     * Adds visual indicator showing current highlight mode
+     */
+    function addHighlightModeIndicator() {
+        if (!textDisplay) return;
+        
+        // Remove existing indicator
+        const existingIndicator = textDisplay.querySelector('.highlight-mode-indicator');
+        if (existingIndicator) {
+            existingIndicator.remove();
+        }
+        
+        // Create new indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'highlight-mode-indicator';
+        indicator.style.cssText = `
+            position: absolute;
+            top: -8px;
+            right: 15px;
+            background: ${isEnhancedMode ? '#28a745' : '#6c757d'};
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 10;
+        `;
+        
+        const modeLabel = {
+            'character': 'CHAR',
+            'syllable': 'SÍLABA', 
+            'word': 'PALAVRA',
+            'phoneme': 'FONEMA'
+        }[currentHighlightMode] || 'BASIC';
+        
+        indicator.textContent = modeLabel;
+        
+        // Insert indicator
+        textDisplay.style.position = 'relative';
+        textDisplay.appendChild(indicator);
+    }
+
+    /**
+     * Toggles between enhanced and basic playback modes
+     */
+    function togglePlaybackMode() {
+        const text = textInput.value.trim();
+        if (!text) {
+            showAudioError('Digite um texto para reproduzir');
+            return false;
+        }
+
+        console.log(`Playback mode check: Enhanced=${isEnhancedMode}, AudioManager.togglePlaybackWithHighlighting=${typeof AudioManager.togglePlaybackWithHighlighting}`);
+        
+        // Force enhanced mode if all components are available
+        const hasLinguisticIntegration = typeof LinguisticIntegration !== 'undefined';
+        const hasTextHighlighter = typeof TextHighlighter !== 'undefined';
+        const hasEnhancedAudio = typeof AudioManager.togglePlaybackWithHighlighting !== 'undefined';
+        
+        if (hasLinguisticIntegration && hasTextHighlighter && hasEnhancedAudio) {
+            console.log('✓ All enhanced components available - using enhanced playback');
+            isEnhancedMode = true;
+            return toggleEnhancedPlayback(text);
+        } else {
+            console.log(`⚠️ Using basic playback - Missing: ${!hasLinguisticIntegration ? 'LinguisticIntegration ' : ''}${!hasTextHighlighter ? 'TextHighlighter ' : ''}${!hasEnhancedAudio ? 'EnhancedAudio' : ''}`);
+            return toggleBasicPlayback(text);
+        }
+    }
+
+    /**
+     * Enhanced playback with linguistic analysis and highlighting
+     */
+    function toggleEnhancedPlayback(text) {
+        const isCurrentlyPlaying = Tone.Transport.state === 'started';
+        
+        if (isCurrentlyPlaying) {
+            // Stop playback
+            console.log('Stopping enhanced playback...');
+            AudioManager.stopAllSounds();
+            hideTextDisplay();
+            playPauseButton.textContent = 'Play';
+            return false;
+        } else {
+            // Start enhanced playback
+            console.log('Starting enhanced playback...');
+            showTextDisplay();
+            
+            // Ensure text is prepared for highlighting before starting playback
+            prepareTextForHighlighting();
+            
+            try {
+                const result = AudioManager.togglePlaybackWithHighlighting(
+                    text, 
+                    currentScale, 
+                    currentAnalysisMode, 
+                    currentHighlightMode
+                );
+                
+                if (result) {
+                    playPauseButton.textContent = 'Pause';
+                    console.log(`✓ Enhanced playback started: ${currentAnalysisMode} + ${currentHighlightMode}`);
+                    
+                    // Add event listener for transport events
+                    setupTransportEventListeners();
+                    
+                    return true;
+                } else {
+                    console.warn('Enhanced playback failed, trying basic mode');
+                    return toggleBasicPlayback(text);
+                }
+            } catch (error) {
+                console.error('Enhanced playback failed, falling back to basic:', error);
+                return toggleBasicPlayback(text);
+            }
+        }
+    }
+    
+    /**
+     * Sets up event listeners for Tone.js Transport events
+     */
+    function setupTransportEventListeners() {
+        // Clean up existing listeners
+        Tone.Transport.off('start');
+        Tone.Transport.off('stop');
+        
+        // Add new listeners
+        Tone.Transport.on('start', () => {
+            console.log('✓ Audio transport started');
+            if (textDisplay) {
+                textDisplay.classList.add('active');
+            }
+        });
+        
+        Tone.Transport.on('stop', () => {
+            console.log('✓ Audio transport stopped');
+            if (textDisplay) {
+                textDisplay.classList.remove('active');
+            }
+            
+            // Clean up highlighting
+            if (typeof TextHighlighter !== 'undefined') {
+                try {
+                    TextHighlighter.stopHighlighting();
+                } catch (error) {
+                    console.warn('Error stopping highlighting on transport stop:', error);
+                }
+            }
+            
+            // Reset play button
+            playPauseButton.textContent = 'Play';
+        });
+    }
+
+    /**
+     * Basic playback without highlighting
+     */
+    function toggleBasicPlayback(text) {
+        console.log('Starting basic playback mode');
+        
+        try {
+            const isPlaying = AudioManager.togglePlayback(text, currentScale, currentRhythm);
+            playPauseButton.textContent = isPlaying ? 'Pause' : 'Play';
+            
+            if (isPlaying) {
+                // Show text in basic mode
+                showTextDisplay();
+                
+                // Prepare basic text highlighting if available
+                if (typeof TextHighlighter !== 'undefined') {
+                    try {
+                        prepareTextForHighlighting();
+                        console.log('✓ Basic text highlighting prepared');
+                    } catch (error) {
+                        console.warn('Basic highlighting failed:', error);
+                    }
+                }
+                
+                console.log('✓ Basic playback started');
+            } else {
+                hideTextDisplay();
+                console.log('✓ Basic playback stopped');
+            }
+            
+            return isPlaying;
+        } catch (error) {
+            console.error('Basic playback failed:', error);
+            showAudioError('Erro na reprodução básica');
+            return false;
+        }
+    }
+
+    /**
+     * Shows the text display for highlighting
+     */
+    function showTextDisplay() {
+        if (textDisplay) {
+            textDisplay.classList.add('active');
+            // No longer setting display style since it's always visible
+        }
+    }
+
+    /**
+     * Hides the text display
+     */
+    function hideTextDisplay() {
+        if (textDisplay) {
+            textDisplay.classList.remove('active');
+            // Clear any highlighting when hiding
+            if (typeof TextHighlighter !== 'undefined') {
+                TextHighlighter.stopHighlighting();
+            }
+        }
+    }
+
     document.body.addEventListener('click', userInteractionListener);
     document.body.addEventListener('keydown', userInteractionListener, { once: true }); // Para o caso de começar a digitar antes de clicar
 
 
     textInput.addEventListener('input', (event) => {
+        // Handle audio initialization and character playback
         if (!AudioManager.isAudioActive && !audioInitializedByInteraction) {
             // Tenta inicializar o áudio se o usuário começou a digitar direto
             // Idealmente, o clique/keydown anterior já teria feito isso.
@@ -78,6 +516,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (AudioManager.isAudioActive) {
             playLastTypedCharacter(event);
         }
+        
+        // Prepare text for highlighting whenever text changes with debouncing
+        clearTimeout(textInput.highlightingTimeout);
+        textInput.highlightingTimeout = setTimeout(() => {
+            try {
+                prepareTextForHighlighting();
+                console.log('Text highlighting updated after input change');
+            } catch (error) {
+                console.warn('Error updating text highlighting:', error);
+            }
+        }, 150); // 150ms debounce to avoid excessive updates
+        
         updateShareUrlInput(); // Atualiza a URL dinamicamente enquanto digita
     });
 
@@ -109,7 +559,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    playPauseButton.addEventListener('click', () => {
+    playPauseButton.addEventListener('click', async () => {
+        // Ensure Tone.js is started first (required by modern browsers)
+        if (Tone.context.state !== 'running') {
+            try {
+                await Tone.start();
+                console.log('✓ Tone.js context started');
+            } catch (error) {
+                console.error('Failed to start Tone.js context:', error);
+                showAudioError('Erro ao inicializar sistema de áudio');
+                return;
+            }
+        }
+        
         if (!AudioManager.isAudioActive && !audioInitializedByInteraction) {
             // Add loading state
             playPauseButton.classList.add('loading');
@@ -118,14 +580,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Tenta inicializar o áudio primeiro, depois tenta o playback
             AudioManager.initializeAudio().then(() => {
                 audioInitializedByInteraction = true;
-                console.log("Áudio inicializado pelo botão Play/Pause.");
+                console.log("✓ Áudio inicializado pelo botão Play/Pause.");
+                
+                // Initialize text highlighter
+                initializeTextHighlighter();
                 
                 // Remove loading state
                 playPauseButton.classList.remove('loading');
                 playPauseButton.disabled = false;
                 
-                const isPlaying = AudioManager.togglePlayback(textInput.value, currentScale, currentRhythm);
-                playPauseButton.textContent = isPlaying ? 'Pause' : 'Play';
+                // Start playback with enhanced features
+                const playbackStarted = togglePlaybackMode();
+                if (!playbackStarted) {
+                    console.warn('Playback failed to start');
+                    showAudioError('Erro ao iniciar reprodução');
+                }
             }).catch(error => {
                 console.error("Erro ao inicializar áudio no Play/Pause:", error);
                 
@@ -135,8 +604,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAudioError("Erro ao inicializar áudio. Tente novamente.");
             });
         } else {
-            const isPlaying = AudioManager.togglePlayback(textInput.value, currentScale, currentRhythm);
-            playPauseButton.textContent = isPlaying ? 'Pause' : 'Play';
+            const playbackStarted = togglePlaybackMode();
+            if (!playbackStarted) {
+                console.warn('Playback toggle failed');
+            }
         }
     });
 
@@ -154,6 +625,12 @@ document.addEventListener('DOMContentLoaded', () => {
         params.append('tremDepth', currentMod.tremoloDepth);
         params.append('tempo', currentTempo);
         params.append('rhythm', currentRhythm);
+        
+        // Add linguistic analysis parameters
+        params.append('analysisMode', currentAnalysisMode);
+        params.append('highlightMode', currentHighlightMode);
+        params.append('dialect', currentDialect);
+        
         return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     }
 
@@ -257,6 +734,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (params.has('rhythm') && AppConfig.RHYTHM_PATTERNS[params.get('rhythm')]) {
             currentRhythm = params.get('rhythm');
         }
+        
+        // Linguistic analysis parameters
+        if (params.has('analysisMode')) {
+            const mode = params.get('analysisMode');
+            if (typeof LinguisticIntegration !== 'undefined' && 
+                LinguisticIntegration.ANALYSIS_MODES[mode]) {
+                currentAnalysisMode = mode;
+            }
+        }
+        
+        if (params.has('highlightMode')) {
+            const mode = params.get('highlightMode');
+            if (typeof TextHighlighter !== 'undefined' && 
+                Object.values(TextHighlighter.HIGHLIGHT_MODES).includes(mode)) {
+                currentHighlightMode = mode;
+            }
+        }
+        
+        if (params.has('dialect')) {
+            const dialect = params.get('dialect');
+            const availableDialects = ['carioca', 'paulista', 'nordestino', 'gaucho'];
+            if (availableDialects.includes(dialect)) {
+                currentDialect = dialect;
+            }
+        }
 
         if (stateLoaded || params.has('eqLow') /* check one of effects param as proxy */) {
              console.log("Estado carregado da URL:", { 
@@ -278,19 +780,57 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load user preferences from storage
     loadUserPreferencesFromStorage(); 
 
+    // Initialize linguistic integration if available
+    if (typeof LinguisticIntegration !== 'undefined') {
+        LinguisticIntegration.setAnalysisMode(currentAnalysisMode);
+        LinguisticIntegration.setDialect(currentDialect);
+        LinguisticIntegration.setMusicalKey('C'); // Default key
+        isEnhancedMode = true;
+        console.log('✓ Linguistic Integration initialized - Enhanced mode enabled');
+    } else {
+        isEnhancedMode = false;
+        console.warn('LinguisticIntegration not available - Enhanced mode disabled');
+    }
+
+    // Initialize text highlighter if available
+    if (typeof TextHighlighter !== 'undefined' && textDisplay) {
+        const initSuccess = initializeTextHighlighter();
+        if (initSuccess) {
+            console.log('✓ Text highlighter initialized on page load');
+        } else {
+            console.warn('Text highlighter initialization failed');
+        }
+    } else {
+        console.warn('TextHighlighter or textDisplay not available:', {
+            TextHighlighter: typeof TextHighlighter !== 'undefined',
+            textDisplay: !!textDisplay
+        });
+    } 
+
     UIModule.initializeUIControls(AppConfig, updateSettings, {
         scale: currentScale,
         instrument: currentInstrument,
         eq: currentEQ,
         mod: currentMod,
         tempo: currentTempo,
-        rhythm: currentRhythm
+        rhythm: currentRhythm,
+        analysisMode: currentAnalysisMode,
+        highlightMode: currentHighlightMode,
+        dialect: currentDialect
     });
     
     // Initialize recent creations list
     if (StorageManager.isLocalStorageAvailable()) {
         UIModule.updateRecentCreationsList();
     }
+    
+    // Prepare any existing text for highlighting after everything is initialized
+    setTimeout(() => {
+        if (textInput.value.trim()) {
+            console.log('Preparing existing text for highlighting on page load');
+            prepareTextForHighlighting();
+        }
+    }, 100);
     
     // Aplicar configurações carregadas (especialmente instrumento e efeitos)
     // Isso garante que mesmo sem interação do usuário, se a URL tiver params, eles sejam aplicados
@@ -386,6 +926,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 playPauseButton.textContent = 'Play';
             }
         }
+        
+        // Handle linguistic analysis settings
+        if (newSettings.analysisMode && newSettings.analysisMode !== currentAnalysisMode) {
+            currentAnalysisMode = newSettings.analysisMode;
+            if (typeof LinguisticIntegration !== 'undefined') {
+                LinguisticIntegration.setAnalysisMode(currentAnalysisMode);
+            }
+            console.log("Modo de análise alterado para:", currentAnalysisMode);
+            
+            // Reprepare text with new analysis mode
+            prepareTextForHighlighting();
+            
+            overallSettingsChanged = true;
+        }
+        
+        if (newSettings.highlightMode && newSettings.highlightMode !== currentHighlightMode) {
+            currentHighlightMode = newSettings.highlightMode;
+            if (typeof TextHighlighter !== 'undefined') {
+                TextHighlighter.setHighlightMode(currentHighlightMode);
+            }
+            console.log("Modo de destaque alterado para:", currentHighlightMode);
+            
+            // Reprepare text with new highlight mode
+            prepareTextForHighlighting();
+            
+            overallSettingsChanged = true;
+        }
+        
+        if (newSettings.dialect && newSettings.dialect !== currentDialect) {
+            currentDialect = newSettings.dialect;
+            if (typeof LinguisticIntegration !== 'undefined') {
+                LinguisticIntegration.setDialect(currentDialect);
+            }
+            console.log("Dialeto alterado para:", currentDialect);
+            overallSettingsChanged = true;
+        }
 
         if (overallSettingsChanged) {
             console.log('Configurações atualizadas:', { 
@@ -394,7 +970,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 eq: { ...currentEQ }, 
                 mod: { ...currentMod },
                 tempo: currentTempo,
-                rhythm: currentRhythm
+                rhythm: currentRhythm,
+                analysisMode: currentAnalysisMode,
+                highlightMode: currentHighlightMode,
+                dialect: currentDialect
             });
             updateShareUrlInput();
             

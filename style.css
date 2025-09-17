@@ -38,6 +38,212 @@ h1 {
     margin-bottom: 20px;
 }
 
+.text-display {
+    min-height: 120px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 15px;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #333;
+    display: block; /* Always visible for text highlighting */
+    position: relative;
+    flex-shrink: 0; /* Prevent shrinking */
+    margin: 10px 0; /* Add some margin for separation */
+}
+
+.text-display.active {
+    border-color: #28a745; /* Green border when active */
+    background-color: #ffffff;
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.3);
+}
+
+.text-display::before {
+    content: "✨ Área de Destaque de Texto";
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    background-color: #007bff;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.text-display.active::before {
+    content: "🎵 Reproduzindo...";
+    background-color: #28a745;
+}
+
+/* Basic character segments for fallback */
+.char-segment {
+    display: inline-block;
+    padding: 2px 1px;
+    margin: 0 1px;
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.char-segment:hover {
+    background-color: #e3f2fd;
+    transform: scale(1.05);
+}
+
+/* Highlight mode indicator */
+.highlight-mode-indicator {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Enhanced text highlighting styles - override text-highlighter.js styles */
+.text-display .highlight-char, 
+.text-display .highlight-syllable, 
+.text-display .highlight-word, 
+.text-display .highlight-phoneme {
+    display: inline-block;
+    transition: all 0.3s ease;
+    position: relative;
+    border-radius: 4px;
+    margin: 1px;
+}
+
+.text-display .highlight-space {
+    white-space: pre;
+}
+
+/* Enhanced current highlight with pulse animation */
+.text-display .highlight-current {
+    background: linear-gradient(135deg, #ffeb3b 0%, #ffc107 100%) !important;
+    color: #333 !important;
+    font-weight: bold !important;
+    padding: 3px 6px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 3px 8px rgba(255, 193, 7, 0.4) !important;
+    transform: scale(1.08);
+    z-index: 10;
+    animation: highlightPulse 0.6s ease-in-out;
+}
+
+@keyframes highlightPulse {
+    0% { transform: scale(1.08); box-shadow: 0 3px 8px rgba(255, 193, 7, 0.4); }
+    50% { transform: scale(1.12); box-shadow: 0 4px 12px rgba(255, 193, 7, 0.6); }
+    100% { transform: scale(1.08); box-shadow: 0 3px 8px rgba(255, 193, 7, 0.4); }
+}
+
+/* Enhanced upcoming highlight */
+.text-display .highlight-upcoming {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+    color: #1976d2 !important;
+    padding: 3px 5px !important;
+    border-radius: 5px !important;
+    border: 1px solid #90caf9 !important;
+    animation: upcomingGlow 1s ease-in-out infinite alternate;
+}
+
+@keyframes upcomingGlow {
+    from { box-shadow: 0 0 5px rgba(25, 118, 210, 0.3); }
+    to { box-shadow: 0 0 10px rgba(25, 118, 210, 0.5); }
+}
+
+/* Enhanced completed highlight */
+.text-display .highlight-completed {
+    background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%) !important;
+    color: #2e7d32 !important;
+    padding: 3px 5px !important;
+    border-radius: 5px !important;
+    opacity: 0.9 !important;
+    transform: scale(0.98);
+    transition: all 0.4s ease;
+}
+
+/* Grammatical type styling with enhanced colors */
+.text-display .grammar-noun { border-bottom: 3px solid #4CAF50; box-shadow: 0 2px 0 rgba(76, 175, 80, 0.3); }
+.text-display .grammar-verb { border-bottom: 3px solid #F44336; box-shadow: 0 2px 0 rgba(244, 67, 54, 0.3); }
+.text-display .grammar-adjective { border-bottom: 3px solid #2196F3; box-shadow: 0 2px 0 rgba(33, 150, 243, 0.3); }
+.text-display .grammar-adverb { border-bottom: 3px solid #FF9800; box-shadow: 0 2px 0 rgba(255, 152, 0, 0.3); }
+.text-display .grammar-article { border-bottom: 2px solid #9E9E9E; }
+.text-display .grammar-preposition { border-bottom: 2px solid #607D8B; }
+.text-display .grammar-pronoun { border-bottom: 2px solid #795548; }
+.text-display .grammar-conjunction { border-bottom: 2px solid #9C27B0; }
+.text-display .grammar-interjection { border-bottom: 3px solid #E91E63; box-shadow: 0 2px 0 rgba(233, 30, 99, 0.3); }
+
+/* Enhanced stress level styling */
+.text-display .primary-stress {
+    text-shadow: 0 0 10px #ffeb3b, 0 0 20px rgba(255, 235, 59, 0.5);
+    font-weight: bold;
+    transform: scale(1.05);
+}
+
+.text-display .secondary-stress {
+    text-shadow: 0 0 6px #ffc107;
+    font-weight: 600;
+    transform: scale(1.02);
+}
+
+.text-display .weak-stress {
+    opacity: 0.75;
+    transform: scale(0.98);
+}
+
+/* Enhanced phonetic styling */
+.text-display .nasal { text-decoration: underline wavy #4CAF50; }
+.text-display .voiced { font-style: italic; color: #1976D2; }
+.text-display .fricative { letter-spacing: 1.5px; }
+.text-display .plosive { font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+.text-display .liquid { text-decoration: underline #2196F3; }
+
+/* Punctuation styling */
+.text-display .punctuation {
+    color: #666;
+    font-weight: normal;
+    opacity: 0.8;
+}
+
+/* Hover effects with better transitions */
+.text-display .highlight-char:hover, 
+.text-display .highlight-syllable:hover, 
+.text-display .highlight-word:hover, 
+.text-display .highlight-phoneme:hover {
+    background-color: #f5f5f5;
+    cursor: pointer;
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
+
+/* Active text display state */
+.text-display.active .highlight-char,
+.text-display.active .highlight-syllable,
+.text-display.active .highlight-word,
+.text-display.active .highlight-phoneme {
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+/* Error states */
+.text-display .highlight-error {
+    background-color: #ffebee !important;
+    color: #c62828 !important;
+    border: 1px dashed #f44336 !important;
+    animation: errorShake 0.5s ease-in-out;
+}
+
+@keyframes errorShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
 .controls-main-buttons {
     display: grid;
     grid-template-columns: 1fr 2fr;
@@ -54,11 +260,14 @@ h1 {
 
 #textInput {
     width: calc(100% - 20px); /* Ajuste para padding interno se houver */
-    height: 80%;
+    min-height: 120px;
+    flex: 1; /* Allow it to grow but not dominate */
+    max-height: 300px; /* Prevent it from getting too large */
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 16px;
+    resize: vertical; /* Allow vertical resizing */
 }
 
 #playPauseButton {
@@ -136,6 +345,50 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    overflow-y: auto;
+}
+
+.settings-section {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f9f9f9;
+}
+
+.settings-section h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 16px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+}
+
+.setting-group {
+    margin-bottom: 15px;
+}
+
+.setting-group label {
+    display: block;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.setting-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+    transition: border-color 0.2s;
+}
+
+.setting-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .control-group {
@@ -489,12 +742,63 @@ legend {
         padding: 12px;
     }
     
-    /* Touch-friendly controls */
-    .control-group select,
-    .slider-control input[type="range"] {
-        min-height: 44px;
-        font-size: 16px;
-        padding: 8px 12px;
+    /* Text highlighting mobile adjustments */
+    .text-display .highlight-char, 
+    .text-display .highlight-syllable, 
+    .text-display .highlight-word, 
+    .text-display .highlight-phoneme {
+        padding: 3px 2px !important;
+        margin: 1px 0.5px !important;
+        font-size: 0.95em;
+        border-radius: 3px !important;
+    }
+    
+    .text-display .highlight-current {
+        padding: 4px 3px !important;
+        font-size: 1em;
+        transform: scale(1.06);
+    }
+    
+    .text-display .highlight-upcoming,
+    .text-display .highlight-completed {
+        padding: 3px 2px !important;
+    }
+    
+    /* Touch-friendly highlighting */
+    .text-display .highlight-char:hover,
+    .text-display .highlight-syllable:hover,
+    .text-display .highlight-word:hover,
+    .text-display .highlight-phoneme:hover {
+        transform: scale(1.05);
+        background-color: #e8f4fd;
+    }
+    
+    /* Adjust highlight mode indicator for mobile */
+    .highlight-mode-indicator {
+        font-size: 10px !important;
+        padding: 1px 6px !important;
+        top: -6px !important;
+        right: 10px !important;
+    }
+    
+    /* Stress indicators mobile adjustments */
+    .text-display .primary-stress {
+        text-shadow: 0 0 6px #ffeb3b !important;
+        transform: scale(1.03);
+    }
+    
+    .text-display .secondary-stress {
+        text-shadow: 0 0 4px #ffc107 !important;
+        transform: scale(1.01);
+    }
+    
+    /* Grammar underlines mobile adjustments */
+    .text-display .grammar-noun,
+    .text-display .grammar-verb,
+    .text-display .grammar-adjective,
+    .text-display .grammar-adverb,
+    .text-display .grammar-interjection {
+        border-bottom-width: 2px !important;
     }
     
     .slider-control {

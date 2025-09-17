@@ -33,6 +33,10 @@ const UIModule = (() => {
         const modControls = createModulationControls(currentMod);
         settingsContainer.appendChild(modControlsContainer(modControls));
         
+        // Add linguistic analysis section
+        const linguisticSection = createLinguisticAnalysisSection(initialValues);
+        settingsContainer.appendChild(linguisticSection);
+        
         // Add storage section
         const storageSection = createStorageSection();
         settingsContainer.appendChild(storageSection);
@@ -496,6 +500,145 @@ const UIModule = (() => {
             
             recentSelect.appendChild(option);
         });
+    }
+
+    function createLinguisticAnalysisSection(initialValues = {}) {
+        const fieldset = document.createElement('fieldset');
+        const legend = document.createElement('legend');
+        legend.textContent = 'Análise Linguística';
+        fieldset.appendChild(legend);
+        
+        // Analysis Mode selector
+        const analysisModeContainer = document.createElement('div');
+        analysisModeContainer.classList.add('control-group');
+        
+        const analysisModeLabel = document.createElement('label');
+        analysisModeLabel.textContent = 'Modo de Análise:';
+        
+        const analysisModeSelect = document.createElement('select');
+        analysisModeSelect.id = 'analysisMode';
+        
+        const analysisOptions = [
+            { value: 'BASIC', label: 'Básico (Caracteres)' },
+            { value: 'GRAMMATICAL', label: 'Gramatical' },
+            { value: 'HARMONIC', label: 'Harmônico' },
+            { value: 'PHONETIC', label: 'Fonético' },
+            { value: 'PROSODIC', label: 'Prosódico' },
+            { value: 'COMPLETE', label: 'Completo' }
+        ];
+        
+        analysisOptions.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option.value;
+            optionElement.textContent = option.label;
+            if (option.value === (initialValues.analysisMode || 'COMPLETE')) {
+                optionElement.selected = true;
+            }
+            analysisModeSelect.appendChild(optionElement);
+        });
+        
+        analysisModeSelect.addEventListener('change', (e) => {
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ analysisMode: e.target.value });
+            }
+        });
+        
+        analysisModeContainer.appendChild(analysisModeLabel);
+        analysisModeContainer.appendChild(analysisModeSelect);
+        
+        // Highlight Mode selector
+        const highlightModeContainer = document.createElement('div');
+        highlightModeContainer.classList.add('control-group');
+        
+        const highlightModeLabel = document.createElement('label');
+        highlightModeLabel.textContent = 'Destaque Visual:';
+        
+        const highlightModeSelect = document.createElement('select');
+        highlightModeSelect.id = 'highlightMode';
+        
+        const highlightOptions = [
+            { value: 'character', label: 'Caractere' },
+            { value: 'syllable', label: 'Sílaba' },
+            { value: 'word', label: 'Palavra' },
+            { value: 'phoneme', label: 'Fonema' }
+        ];
+        
+        highlightOptions.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option.value;
+            optionElement.textContent = option.label;
+            if (option.value === (initialValues.highlightMode || 'character')) {
+                optionElement.selected = true;
+            }
+            highlightModeSelect.appendChild(optionElement);
+        });
+        
+        highlightModeSelect.addEventListener('change', (e) => {
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ highlightMode: e.target.value });
+            }
+        });
+        
+        highlightModeContainer.appendChild(highlightModeLabel);
+        highlightModeContainer.appendChild(highlightModeSelect);
+        
+        // Dialect selector
+        const dialectContainer = document.createElement('div');
+        dialectContainer.classList.add('control-group');
+        
+        const dialectLabel = document.createElement('label');
+        dialectLabel.textContent = 'Dialeto:';
+        
+        const dialectSelect = document.createElement('select');
+        dialectSelect.id = 'dialectSelect';
+        
+        const dialectOptions = [
+            { value: 'carioca', label: 'Carioca (Rio)' },
+            { value: 'paulista', label: 'Paulista (São Paulo)' },
+            { value: 'nordestino', label: 'Nordestino' },
+            { value: 'gaucho', label: 'Gaúcho (Sul)' }
+        ];
+        
+        dialectOptions.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option.value;
+            optionElement.textContent = option.label;
+            if (option.value === (initialValues.dialect || 'carioca')) {
+                optionElement.selected = true;
+            }
+            dialectSelect.appendChild(optionElement);
+        });
+        
+        dialectSelect.addEventListener('change', (e) => {
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ dialect: e.target.value });
+            }
+        });
+        
+        dialectContainer.appendChild(dialectLabel);
+        dialectContainer.appendChild(dialectSelect);
+        
+        // Add info section about linguistic features
+        const infoContainer = document.createElement('div');
+        infoContainer.style.fontSize = '12px';
+        infoContainer.style.color = '#666';
+        infoContainer.style.marginTop = '10px';
+        infoContainer.style.padding = '8px';
+        infoContainer.style.backgroundColor = '#f9f9f9';
+        infoContainer.style.borderRadius = '4px';
+        infoContainer.innerHTML = `
+            <strong>Recursos Linguísticos:</strong><br>
+            • <strong>Completo:</strong> Análise gramatical + harmônica + fonética + prosódica<br>
+            • <strong>Destaque:</strong> Mostra visualmente qual texto está tocando<br>
+            • <strong>Dialetos:</strong> Suporte a variações regionais do português
+        `;
+        
+        fieldset.appendChild(analysisModeContainer);
+        fieldset.appendChild(highlightModeContainer);
+        fieldset.appendChild(dialectContainer);
+        fieldset.appendChild(infoContainer);
+        
+        return fieldset;
     }
 
     return {

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Destaque Visual - Text-to-MIDI</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-text {
+            min-height: 60px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            background: #fafafa;
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        select, button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+    </style>
+    <!-- Include Tone.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+</head>
+<body>
+    <h1>🎵 Teste de Destaque Visual Text-to-MIDI</h1>
+    
+    <div class="test-container">
+        <h2>Sistema de Destaque de Texto</h2>
+        <div class="info">
+            Este teste demonstra o sistema de destaque visual que indica qual letra/sílaba/palavra está tocando durante a reprodução.
+        </div>
+        
+        <div class="controls">
+            <select id="highlightMode">
+                <option value="character">Caractere</option>
+                <option value="syllable">Sílaba</option>
+                <option value="word">Palavra</option>
+                <option value="phoneme">Fonema</option>
+            </select>
+            
+            <select id="analysisMode">
+                <option value="BASIC">Básico</option>
+                <option value="GRAMMATICAL">Gramatical</option>
+                <option value="HARMONIC">Harmônico</option>
+                <option value="PHONETIC">Fonético</option>
+                <option value="PROSODIC">Prosódico</option>
+                <option value="COMPLETE">Completo</option>
+            </select>
+            
+            <select id="dialectSelect">
+                <option value="carioca">Carioca (Rio)</option>
+                <option value="paulista">Paulista (SP)</option>
+                <option value="nordestino">Nordestino</option>
+                <option value="gaucho">Gaúcho (Sul)</option>
+            </select>
+            
+            <button id="testButton">▶️ Testar</button>
+            <button id="stopButton">⏹️ Parar</button>
+            <button id="quickTestButton">🚀 Teste Rápido</button>
+        </div>
+        
+        <div id="testText" class="test-text">
+            <!-- Highlighted text will appear here -->
+        </div>
+        
+        <textarea id="inputText" placeholder="Digite um texto para testar..." style="width: 100%; height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;">Que bela manhã de sol! Como está o tempo hoje?</textarea>
+    </div>
+    
+    <div class="test-container">
+        <h2>Status do Sistema</h2>
+        <div id="systemStatus"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Log de Testes</h2>
+        <div id="testLog" style="max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+    </div>
+
+    <script>
+        // Simple configuration for testing
+        const AppConfig = {
+            SCALES: {
+                pentatonic_major: {
+                    'a': 'C4', 'b': 'D4', 'c': 'E4', 'd': 'G4', 'e': 'A4',
+                    'f': 'C5', 'g': 'D5', 'h': 'E5', 'i': 'G5', 'j': 'A5',
+                    'k': 'C4', 'l': 'D4', 'm': 'E4', 'n': 'G4', 'o': 'A4',
+                    'p': 'C5', 'q': 'D5', 'r': 'E5', 's': 'G5', 't': 'A5',
+                    'u': 'C4', 'v': 'D4', 'w': 'E4', 'x': 'G4', 'y': 'A4', 'z': 'C5',
+                    ' ': null, ',': null, '.': null, '!': null, '?': null
+                }
+            },
+            NOTE_DURATION: '8n',
+            SILENCE_DURATION: '16n'
+        };
+    </script>
+    
+    <!-- Include our modules -->
+    <script src="js/grammar.js"></script>
+    <script src="js/musical-grammar.js"></script>
+    <script src="js/harmonic-engine.js"></script>
+    <script src="js/phonetic-engine.js"></script>
+    <script src="js/stress-analyzer.js"></script>
+    <script src="js/prosodic-engine.js"></script>
+    <script src="js/linguistic-integration.js"></script>
+    <script src="js/text-highlighter.js"></script>
+    
+    <script>
+        // Test script
+        let audioInitialized = false;
+        let currentTest = null;
+        
+        const testButton = document.getElementById('testButton');
+        const stopButton = document.getElementById('stopButton');
+        const quickTestButton = document.getElementById('quickTestButton');
+        const testText = document.getElementById('testText');
+        const inputText = document.getElementById('inputText');
+        const highlightMode = document.getElementById('highlightMode');
+        const analysisMode = document.getElementById('analysisMode');
+        const dialectSelect = document.getElementById('dialectSelect');
+        const systemStatus = document.getElementById('systemStatus');
+        const testLog = document.getElementById('testLog');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `status ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            testLog.appendChild(logEntry);
+            testLog.scrollTop = testLog.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function updateSystemStatus() {
+            const status = [];
+            
+            // Check Tone.js
+            if (typeof Tone !== 'undefined') {
+                status.push('<div class="status success">✓ Tone.js carregado</div>');
+            } else {
+                status.push('<div class="status error">✗ Tone.js não encontrado</div>');
+            }
+            
+            // Check linguistic modules
+            const modules = [
+                'GrammarAnalyzer', 'MusicalGrammar', 'HarmonicEngine',
+                'PhoneticEngine', 'StressAnalyzer', 'ProsodicEngine',
+                'LinguisticIntegration', 'TextHighlighter'
+            ];
+            
+            modules.forEach(module => {
+                if (typeof window[module] !== 'undefined') {
+                    status.push(`<div class="status success">✓ ${module}</div>`);
+                } else {
+                    status.push(`<div class="status error">✗ ${module}</div>`);
+                }
+            });
+            
+            // Check audio status
+            if (audioInitialized) {
+                status.push('<div class="status success">✓ Áudio inicializado</div>');
+            } else {
+                status.push('<div class="status info">ℹ Áudio aguardando inicialização</div>');
+            }
+            
+            systemStatus.innerHTML = status.join('');
+        }
+        
+        async function initializeAudio() {
+            if (audioInitialized) return true;
+            
+            try {
+                await Tone.start();
+                log('Áudio inicializado com sucesso', 'success');
+                audioInitialized = true;
+                
+                // Initialize text highlighter
+                if (typeof TextHighlighter !== 'undefined') {
+                    TextHighlighter.initialize(testText);
+                    log('Text Highlighter inicializado', 'success');
+                }
+                
+                // Initialize linguistic integration
+                if (typeof LinguisticIntegration !== 'undefined') {
+                    LinguisticIntegration.setAnalysisMode(analysisMode.value);
+                    LinguisticIntegration.setDialect(dialectSelect.value);
+                    log('Linguistic Integration inicializado', 'success');
+                }
+                
+                updateSystemStatus();
+                return true;
+            } catch (error) {
+                log(`Erro ao inicializar áudio: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function runTest() {
+            const text = inputText.value.trim();
+            if (!text) {
+                log('Digite um texto para testar', 'error');
+                return;
+            }
+            
+            if (!audioInitialized) {
+                const success = await initializeAudio();
+                if (!success) return;
+            }
+            
+            try {
+                // Stop any current playback
+                if (Tone.Transport.state === 'started') {
+                    Tone.Transport.stop();
+                    Tone.Transport.cancel();
+                }
+                
+                // Set current modes
+                if (typeof TextHighlighter !== 'undefined') {
+                    TextHighlighter.setHighlightMode(highlightMode.value);
+                }
+                
+                if (typeof LinguisticIntegration !== 'undefined') {
+                    LinguisticIntegration.setAnalysisMode(analysisMode.value);
+                    LinguisticIntegration.setDialect(dialectSelect.value);
+                }
+                
+                // Process text
+                log(`Iniciando teste: ${analysisMode.value} + ${highlightMode.value}`, 'info');
+                
+                let linguisticResult;
+                if (typeof LinguisticIntegration !== 'undefined') {
+                    linguisticResult = LinguisticIntegration.processText(text, 'pentatonic_major');
+                    log(`Texto processado com ${linguisticResult.finalSequence?.length || 0} elementos`, 'success');
+                } else {
+                    // Fallback to basic processing
+                    linguisticResult = {
+                        finalSequence: text.split('').map(char => ({
+                            character: char,
+                            note: AppConfig.SCALES.pentatonic_major[char.toLowerCase()],
+                            velocity: 0.5,
+                            duration: '8n'
+                        }))
+                    };
+                }
+                
+                // Prepare highlighting
+                if (typeof TextHighlighter !== 'undefined') {
+                    TextHighlighter.prepareText(text, linguisticResult);
+                    log('Texto preparado para destaque', 'success');
+                }
+                
+                // Schedule playback
+                schedulePlayback(linguisticResult);
+                
+                testButton.disabled = true;
+                stopButton.disabled = false;
+                
+            } catch (error) {
+                log(`Erro durante teste: ${error.message}`, 'error');
+            }
+        }
+        
+        function schedulePlayback(linguisticResult) {
+            if (!linguisticResult.finalSequence) return;
+            
+            const synth = new Tone.Synth().toDestination();
+            let currentTime = 0;
+            
+            // Start highlighting
+            if (typeof TextHighlighter !== 'undefined') {
+                TextHighlighter.startHighlighting(linguisticResult);
+            }
+            
+            linguisticResult.finalSequence.forEach((noteData, index) => {
+                if (noteData.note) {
+                    Tone.Transport.scheduleOnce((time) => {
+                        synth.triggerAttackRelease(
+                            noteData.note, 
+                            noteData.duration || '8n', 
+                            time, 
+                            noteData.velocity || 0.5
+                        );
+                    }, currentTime);
+                    
+                    currentTime += Tone.Time(noteData.duration || '8n').toSeconds();
+                } else {
+                    currentTime += Tone.Time('16n').toSeconds();
+                }
+            });
+            
+            // Schedule stop
+            Tone.Transport.scheduleOnce(() => {
+                stopTest();
+                log('Teste finalizado', 'success');
+            }, currentTime);
+            
+            Tone.Transport.start();
+            log('Reprodução iniciada', 'info');
+        }
+        
+        function stopTest() {
+            if (Tone.Transport.state === 'started') {
+                Tone.Transport.stop();
+                Tone.Transport.cancel();
+            }
+            
+            if (typeof TextHighlighter !== 'undefined') {
+                TextHighlighter.stopHighlighting();
+            }
+            
+            testButton.disabled = false;
+            stopButton.disabled = true;
+            
+            log('Teste interrompido', 'info');
+        }
+        
+        function runQuickTest() {
+            inputText.value = "Olá! Como você está?";
+            highlightMode.value = 'word';
+            analysisMode.value = 'COMPLETE';
+            runTest();
+        }
+        
+        // Event listeners
+        testButton.addEventListener('click', runTest);
+        stopButton.addEventListener('click', stopTest);
+        quickTestButton.addEventListener('click', runQuickTest);
+        
+        // Initialize interface on click
+        document.addEventListener('click', async () => {
+            if (!audioInitialized) {
+                await initializeAudio();
+            }
+        }, { once: true });
+        
+        // Initial status update
+        updateSystemStatus();
+        log('Sistema de teste carregado', 'info');
+        log('Clique em qualquer lugar para inicializar o áudio', 'info');
+    </script>
+</body>
+</html>
