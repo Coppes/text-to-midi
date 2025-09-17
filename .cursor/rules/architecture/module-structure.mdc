@@ -1,0 +1,226 @@
+---
+trigger: always_on
+alwaysApply: true
+---
+# Project Architecture Rules
+
+## 1. MANDATORY FILE STRUCTURE
+
+```
+text-to-midi/
+├── index.html              # Main application entry point
+├── style.css               # All visual styles (single file)
+├── js/                     # JavaScript modules directory
+│   ├── main.js            # Application orchestration & state management
+│   ├── ui.js              # DOM manipulation & UI event handling
+│   ├── audio.js           # Tone.js operations & audio logic
+│   ├── config.js          # Static configurations & constants
+│   ├── text-highlighter.js # Visual text feedback system
+│   ├── grammar.js         # Grammatical analysis engine
+│   ├── phonetic-engine.js # Phonetic processing for Brazilian Portuguese
+│   ├── prosodic-engine.js # Prosodic melody generation
+│   ├── harmonic-engine.js # Harmonic progression logic
+│   ├── musical-grammar.js # Musical theory implementations
+│   ├── stress-analyzer.js # Syllable stress detection
+│   ├── linguistic-*.js    # Linguistic processing modules
+│   ├── storage.js         # Local storage and state persistence
+│   └── touch.js           # Touch/mobile interaction handlers
+├── rules/                  # Project rules system (this directory)
+├── tests/                  # Test files and validation scripts
+├── docs/                   # Documentation files
+├── package.json           # Development dependencies only
+├── README.md              # Project overview and setup
+├── roadmap.md             # Implementation roadmap and phases
+└── dev.md                 # Developer documentation
+```
+
+## 2. MODULE RESPONSIBILITIES (STRICT)
+
+### Core Modules
+
+#### main.js - Application Orchestrator
+**RESPONSIBILITIES:**
+- Application initialization and startup sequence
+- Global state management (current text, configurations, playback state)
+- Event coordination between UI and audio modules
+- URL state handling for sharing functionality
+- Lifecycle management for all subsystems
+
+**FORBIDDEN:**
+- Direct DOM manipulation (delegate to ui.js)
+- Direct audio operations (delegate to audio.js)
+- Static configuration data (belongs in config.js)
+
+#### ui.js - User Interface Controller
+**RESPONSIBILITIES:**
+- DOM element creation and manipulation
+- UI component event handlers (buttons, sliders, forms)
+- Visual feedback and state representation
+- User input validation and formatting
+- UI state synchronization with application state
+
+**FORBIDDEN:**
+- Audio logic or Tone.js operations
+- Application state management (read-only access)
+- Configuration data definition
+
+#### audio.js - Audio Engine
+**RESPONSIBILITIES:**
+- All Tone.js operations and audio node management
+- Instrument loading and configuration
+- Note sequencing and playback orchestration
+- Audio effects application (EQ, modulation, etc.)
+- Audio context management and optimization
+
+**FORBIDDEN:**
+- DOM manipulation or UI updates
+- Application state management (read-only access)
+- Configuration data definition
+
+#### config.js - Configuration Data
+**RESPONSIBILITIES:**
+- Musical scales definitions and note mappings
+- Instrument configurations and presets
+- Default parameter values and constants
+- Static data structures only
+
+**FORBIDDEN:**
+- Functions or executable logic
+- State management
+- Event handling
+
+### Specialized Modules
+
+#### text-highlighter.js - Visual Feedback Engine
+**RESPONSIBILITIES:**
+- Character, syllable, word, and phoneme highlighting
+- Synchronized visual feedback with audio playback
+- Animation and transition effects
+- Mobile-responsive visual elements
+
+#### Linguistic Processing Modules
+**RESPONSIBILITIES:**
+- `grammar.js`: Grammatical analysis and word classification
+- `phonetic-engine.js`: Brazilian Portuguese phonetic processing
+- `prosodic-engine.js`: Prosodic melody generation
+- `stress-analyzer.js`: Syllable stress detection
+- `musical-grammar.js`: Musical theory and harmonic rules
+
+## 3. TECHNOLOGY STACK CONSTRAINTS
+
+### Mandatory Technologies
+- **HTML5:** Semantic markup and modern web standards
+- **CSS3:** Modern styling with flexbox/grid, animations, responsiveness
+- **Vanilla JavaScript (ES6+):** No UI frameworks allowed
+- **Tone.js:** ONLY audio library permitted for audio operations
+- **http-server:** Development server for local testing
+
+### Forbidden Technologies
+- **UI Frameworks:** React, Vue, Angular, Svelte, etc.
+- **Build Tools:** Webpack, Vite, Parcel, Rollup, etc.
+- **CSS Frameworks:** Bootstrap, Tailwind, Foundation, etc.
+- **Other Audio Libraries:** Web Audio API direct usage, Howler.js, etc.
+- **Backend Technologies:** Node.js servers, databases, APIs
+
+### Allowed Development Tools
+- **Package Managers:** npm, yarn (for http-server only)
+- **Code Editors:** Any IDE/editor with JavaScript support
+- **Browsers:** Chrome, Firefox, Safari, Edge for testing
+- **Version Control:** Git with conventional commit messages
+
+## 4. DEPENDENCY MANAGEMENT
+
+### External Dependencies
+- **Tone.js:** Latest stable version via CDN
+- **http-server:** Development dependency only
+- **No other external dependencies allowed**
+
+### Internal Dependencies
+- Modules may import from other modules using ES6 import/export
+- Circular dependencies are forbidden
+- Dependency tree must remain shallow (max 2 levels)
+- All dependencies must be explicitly declared
+
+### Dependency Rules
+```javascript
+// ALLOWED:
+import { scales } from './config.js';
+import { createButton } from './ui.js';
+
+// FORBIDDEN:
+import React from 'react';
+import $ from 'jquery';
+```
+
+## 5. DATA FLOW ARCHITECTURE
+
+### Unidirectional Data Flow
+```
+User Input → UI Module → Main Module → Audio Module → Audio Output
+                     ↓
+               State Updates → UI Updates → Visual Feedback
+```
+
+### Event Communication
+- UI events flow through main.js for coordination
+- Audio events trigger both audio and visual updates
+- State changes propagate to all relevant modules
+- No direct module-to-module communication except through main.js
+
+### State Management
+- **Global State:** Managed exclusively by main.js
+- **Local State:** Each module manages internal state only
+- **Shared State:** Passed as parameters, never modified directly
+- **Persistent State:** Handled by storage.js with main.js coordination
+
+## 6. PERFORMANCE ARCHITECTURE
+
+### Memory Management
+- Audio nodes must be disposed when not needed
+- DOM elements must be cleaned up properly
+- Event listeners must be removed when components unmount
+- Large data structures should be cleared when possible
+
+### Optimization Strategies
+- Lazy loading of heavy modules (linguistic processors)
+- Efficient DOM updates (batch operations, minimal reflow)
+- Audio buffer optimization for low latency
+- Debounced user input processing
+
+### Browser Compatibility
+- **Target Browsers:** Chrome 80+, Firefox 75+, Safari 13+, Edge 80+
+- **Fallbacks:** Graceful degradation for unsupported features
+- **Testing:** Manual testing across all target browsers required
+
+## 7. SECURITY ARCHITECTURE
+
+### Input Sanitization
+- All user text input must be sanitized for XSS prevention
+- URL parameters must be validated before processing
+- Configuration data must be validated before application
+
+### Client-Side Security
+- No sensitive data in client code
+- No external API calls without user consent
+- Audio context permissions handled properly
+- No data transmission to external servers
+
+## 8. SCALABILITY CONSIDERATIONS
+
+### Module Expansion
+- New linguistic modules follow established patterns
+- Audio processing modules remain independent
+- UI components follow consistent interface patterns
+- Configuration remains centralized in config.js
+
+### Feature Addition
+- New features must align with modular architecture
+- Complex features should be broken into sub-modules
+- Maintain backwards compatibility when possible
+- Document architectural impact of new features
+
+---
+
+**Enforcement Level:** MANDATORY - No exceptions allowed  
+**Review Required:** For any architectural changes  
+**Last Updated:** 2025-09-16
