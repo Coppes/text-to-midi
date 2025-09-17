@@ -1,3 +1,7 @@
+---
+trigger: always_on
+alwaysApply: true
+---
 # UI/UX Design Rules and Standards
 
 ## 1. DESIGN PRINCIPLES

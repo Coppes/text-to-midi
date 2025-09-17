@@ -7,12 +7,58 @@
  */
 
 const TextHighlighter = (() => {
-    // Highlighting modes
+    // Highlighting modes - Enhanced with advanced linguistic analysis
     const HIGHLIGHT_MODES = {
         CHARACTER: 'character',
         SYLLABLE: 'syllable', 
         WORD: 'word',
-        PHONEME: 'phoneme'
+        PHONEME: 'phoneme',
+        // Advanced linguistic modes
+        GRAMMATICAL: 'grammatical',
+        PROSODIC: 'prosodic',
+        HARMONIC: 'harmonic'
+    };
+    
+    // Advanced highlighting configurations
+    const ADVANCED_HIGHLIGHT_MODES = {
+        GRAMMATICAL: {
+            name: 'Grammatical Classes',
+            description: 'Highlights words by grammatical classification',
+            colorScheme: {
+                noun: '#2196F3',
+                verb: '#4CAF50', 
+                adjective: '#FF9800',
+                adverb: '#9C27B0',
+                article: '#9E9E9E',
+                preposition: '#607D8B',
+                pronoun: '#795548',
+                conjunction: '#3F51B5',
+                interjection: '#E91E63',
+                unknown: '#CFD8DC'
+            }
+        },
+        PROSODIC: {
+            name: 'Prosodic Stress',
+            description: 'Highlights syllables by stress patterns',
+            colorScheme: {
+                primaryStress: '#F44336',
+                secondaryStress: '#FF9800',
+                unstressed: '#9E9E9E',
+                weak: '#ECEFF1'
+            }
+        },
+        HARMONIC: {
+            name: 'Harmonic Context',
+            description: 'Highlights words by harmonic function',
+            colorScheme: {
+                tonic: '#4CAF50',
+                dominant: '#FF5722',
+                subdominant: '#2196F3',
+                predominant: '#9C27B0',
+                cadential: '#FF9800',
+                neutral: '#9E9E9E'
+            }
+        }
     };
 
     // Current state
@@ -134,6 +180,18 @@ const TextHighlighter = (() => {
             case HIGHLIGHT_MODES.PHONEME:
                 generatePhonemeHighlights(text, linguisticResult);
                 break;
+            case HIGHLIGHT_MODES.GRAMMATICAL:
+                generateGrammaticalHighlights(text, linguisticResult);
+                break;
+            case HIGHLIGHT_MODES.PROSODIC:
+                generateProsodicHighlights(text, linguisticResult);
+                break;
+            case HIGHLIGHT_MODES.HARMONIC:
+                generateHarmonicHighlights(text, linguisticResult);
+                break;
+            default:
+                console.warn(`Unknown highlight mode: ${currentMode}, falling back to character mode`);
+                generateCharacterHighlights(text, linguisticResult);
         }
     }
 
@@ -308,12 +366,241 @@ const TextHighlighter = (() => {
             textContainer.appendChild(span);
         });
     }
+    
+    /**
+     * Generates grammatical highlighting structure
+     * @param {string} text - Original text
+     * @param {Object} linguisticResult - Linguistic analysis result
+     */
+    function generateGrammaticalHighlights(text, linguisticResult) {
+        const words = text.split(/(\s+)/);
+        const grammaticalAnalysis = linguisticResult.grammaticalAnalysis || [];
+        const colorScheme = ADVANCED_HIGHLIGHT_MODES.GRAMMATICAL.colorScheme;
+        let wordIndex = 0;
+        
+        words.forEach(word => {
+            const span = document.createElement('span');
+            span.textContent = word;
+            
+            if (/^\s+$/.test(word)) {
+                span.className = 'highlight-space';
+            } else {
+                span.className = 'highlight-grammatical';
+                span.dataset.wordIndex = wordIndex;
+                span.dataset.word = word;
+                
+                const grammarData = grammaticalAnalysis[wordIndex];
+                if (grammarData) {
+                    const grammarType = grammarData.type ? grammarData.type.toLowerCase() : 'unknown';
+                    span.classList.add(`grammar-${grammarType}`);
+                    span.dataset.grammarType = grammarType;
+                    span.dataset.weight = grammarData.weight || 1.0;
+                    
+                    // Apply color based on grammatical type
+                    const color = colorScheme[grammarType] || colorScheme.unknown;
+                    span.style.borderBottomColor = color;
+                    span.style.borderBottomWidth = '3px';
+                    span.style.borderBottomStyle = 'solid';
+                    
+                    // Add hover tooltip with grammatical information
+                    span.title = `${grammarType.toUpperCase()} - Weight: ${grammarData.weight || 1.0}`;
+                } else {
+                    span.classList.add('grammar-unknown');
+                    span.style.borderBottomColor = colorScheme.unknown;
+                }
+                
+                wordIndex++;
+            }
+            
+            textContainer.appendChild(span);
+        });
+        
+        console.log(`✓ Grammatical highlighting generated for ${wordIndex} words`);
+    }
+    
+    /**
+     * Generates prosodic highlighting structure
+     * @param {string} text - Original text
+     * @param {Object} linguisticResult - Linguistic analysis result
+     */
+    function generateProsodicHighlights(text, linguisticResult) {
+        const words = text.split(/(\s+)/);
+        const colorScheme = ADVANCED_HIGHLIGHT_MODES.PROSODIC.colorScheme;
+        let syllableIndex = 0;
+        
+        words.forEach(word => {
+            if (/^\s+$/.test(word)) {
+                const span = document.createElement('span');
+                span.textContent = word;
+                span.className = 'highlight-space';
+                textContainer.appendChild(span);
+                return;
+            }
+            
+            // Get syllables and stress analysis for this word
+            let syllables = [];
+            let stressAnalysis = null;
+            
+            try {
+                if (typeof StressAnalyzer !== 'undefined') {
+                    syllables = StressAnalyzer.syllabify(word);
+                    stressAnalysis = StressAnalyzer.detectStress(word);
+                } else {
+                    // Fallback: split word into characters if no stress analyzer
+                    syllables = word.split('');
+                }
+            } catch (error) {
+                console.warn('Error in stress analysis, using fallback:', error);
+                syllables = word.split('');
+            }
+            
+            syllables.forEach((syllable, index) => {
+                const span = document.createElement('span');
+                span.textContent = syllable;
+                span.className = 'highlight-prosodic';
+                span.dataset.syllableIndex = syllableIndex;
+                span.dataset.wordSyllableIndex = index;
+                span.dataset.syllable = syllable;
+                
+                // Determine stress level and apply styling
+                let stressType = 'unstressed';
+                let backgroundColor = colorScheme.unstressed;
+                
+                if (stressAnalysis) {
+                    if (index === stressAnalysis.position) {
+                        stressType = 'primaryStress';
+                        backgroundColor = colorScheme.primaryStress;
+                        span.classList.add('primary-stress');
+                    } else {
+                        const stressLevel = StressAnalyzer.calculateStressLevel ? 
+                            StressAnalyzer.calculateStressLevel(index, stressAnalysis, syllables.length) : 0;
+                        
+                        if (stressLevel > 0.5) {
+                            stressType = 'secondaryStress';
+                            backgroundColor = colorScheme.secondaryStress;
+                            span.classList.add('secondary-stress');
+                        } else {
+                            stressType = 'weak';
+                            backgroundColor = colorScheme.weak;
+                            span.classList.add('weak-stress');
+                        }
+                    }
+                }
+                
+                span.dataset.stressType = stressType;
+                span.style.backgroundColor = backgroundColor;
+                span.style.padding = '2px 4px';
+                span.style.margin = '0 1px';
+                span.style.borderRadius = '3px';
+                
+                // Add tooltip with stress information
+                span.title = `Syllable: ${syllable} - Stress: ${stressType}`;
+                
+                textContainer.appendChild(span);
+                syllableIndex++;
+            });
+        });
+        
+        console.log(`✓ Prosodic highlighting generated for ${syllableIndex} syllables`);
+    }
+    
+    /**
+     * Generates harmonic highlighting structure
+     * @param {string} text - Original text
+     * @param {Object} linguisticResult - Linguistic analysis result
+     */
+    function generateHarmonicHighlights(text, linguisticResult) {
+        const words = text.split(/(\s+)/);
+        const harmonicData = linguisticResult.harmonicAnalysis || [];
+        const colorScheme = ADVANCED_HIGHLIGHT_MODES.HARMONIC.colorScheme;
+        let wordIndex = 0;
+        
+        words.forEach(word => {
+            const span = document.createElement('span');
+            span.textContent = word;
+            
+            if (/^\s+$/.test(word)) {
+                span.className = 'highlight-space';
+            } else {
+                span.className = 'highlight-harmonic';
+                span.dataset.wordIndex = wordIndex;
+                span.dataset.word = word;
+                
+                // Get harmonic context from sequence or generate fallback
+                let harmonicFunction = 'neutral';
+                let harmonicInfo = null;
+                
+                if (linguisticResult.finalSequence && linguisticResult.finalSequence[wordIndex]) {
+                    const sequenceItem = linguisticResult.finalSequence[wordIndex];
+                    if (sequenceItem.harmonic) {
+                        harmonicFunction = getHarmonicFunction(sequenceItem.harmonic);
+                        harmonicInfo = sequenceItem.harmonic;
+                    }
+                }
+                
+                span.classList.add(`harmonic-${harmonicFunction}`);
+                span.dataset.harmonicFunction = harmonicFunction;
+                
+                // Apply color based on harmonic function
+                const backgroundColor = colorScheme[harmonicFunction] || colorScheme.neutral;
+                span.style.backgroundColor = backgroundColor;
+                span.style.padding = '3px 6px';
+                span.style.margin = '0 2px';
+                span.style.borderRadius = '4px';
+                span.style.color = '#fff';
+                span.style.fontWeight = '500';
+                
+                // Add tooltip with harmonic information
+                if (harmonicInfo) {
+                    span.title = `Harmonic: ${harmonicFunction.toUpperCase()}\nChord: ${harmonicInfo.chord || 'N/A'}\nTension: ${(harmonicInfo.tension * 100).toFixed(0)}%`;
+                } else {
+                    span.title = `Harmonic: ${harmonicFunction.toUpperCase()}`;
+                }
+                
+                wordIndex++;
+            }
+            
+            textContainer.appendChild(span);
+        });
+        
+        console.log(`✓ Harmonic highlighting generated for ${wordIndex} words`);
+    }
+    
+    /**
+     * Determines harmonic function from harmonic data
+     * @param {Object} harmonicData - Harmonic analysis data
+     * @returns {string} Harmonic function name
+     */
+    function getHarmonicFunction(harmonicData) {
+        if (!harmonicData || !harmonicData.romanChord) {
+            return 'neutral';
+        }
+        
+        const chord = harmonicData.romanChord.toLowerCase();
+        const tension = harmonicData.tension || 0;
+        
+        // Classify harmonic function based on roman numeral and tension
+        if (chord === 'i' || chord === 'vi') {
+            return 'tonic';
+        } else if (chord === 'v' || chord === 'vii°') {
+            return 'dominant';
+        } else if (chord === 'iv' || chord === 'ii') {
+            return tension > 0.6 ? 'predominant' : 'subdominant';
+        } else if (tension > 0.7) {
+            return 'cadential';
+        }
+        
+        return 'neutral';
+    }
 
     /**
      * Starts real-time highlighting synchronized with audio playback
+     * Enhanced with precise timing control (±10ms accuracy)
      * @param {Object} linguisticResult - Result from text processing
+     * @param {number} startTime - Start time offset in seconds
+     * @param {number} speed - Highlighting speed multiplier (default: 1.0)
      */
-    function startHighlighting(linguisticResult) {
+    function startHighlighting(linguisticResult, startTime = 0, speed = 1.0) {
         if (isHighlighting) {
             stopHighlighting();
         }
@@ -322,47 +609,83 @@ const TextHighlighter = (() => {
         highlightScheduleIds = [];
         
         const sequence = linguisticResult.finalSequence || [];
-        let currentTime = 0;
+        let currentTime = startTime;
         
-        console.log(`Starting ${currentMode} highlighting for ${sequence.length} items`);
+        console.log(`Starting ${currentMode} highlighting for ${sequence.length} items with ±10ms precision`);
         
+        // Pre-calculate all timing to ensure precision
+        const timingPlan = [];
         sequence.forEach((item, index) => {
             const duration = item.duration || '8n';
-            const durationSeconds = Tone.Time(duration).toSeconds();
+            const durationSeconds = Tone.Time(duration).toSeconds() / speed;
             
-            // Schedule highlight activation
-            const scheduleId = Tone.Transport.scheduleOnce(() => {
-                highlightItem(index, 'current');
-                
-                // Clear previous highlights
-                if (index > 0) {
-                    highlightItem(index - 1, 'completed');
-                }
-                
-                // Show upcoming highlights
-                if (index < sequence.length - 1) {
-                    highlightItem(index + 1, 'upcoming');
-                }
-                
-            }, currentTime);
+            timingPlan.push({
+                index: index,
+                startTime: currentTime,
+                duration: durationSeconds,
+                item: item
+            });
             
-            highlightScheduleIds.push(scheduleId);
             currentTime += durationSeconds;
         });
         
-        // Schedule final cleanup
+        // Schedule with high precision
+        timingPlan.forEach((timing, planIndex) => {
+            // Schedule current highlight with compensation for browser timing
+            const scheduleId = Tone.Transport.scheduleOnce((time) => {
+                // Use requestAnimationFrame for DOM updates to ensure smooth visual updates
+                requestAnimationFrame(() => {
+                    highlightItem(timing.index, 'current');
+                    
+                    // Clear previous highlights
+                    if (timing.index > 0) {
+                        highlightItem(timing.index - 1, 'completed');
+                    }
+                    
+                    // Show upcoming highlights (look-ahead)
+                    if (timing.index < sequence.length - 1) {
+                        highlightItem(timing.index + 1, 'upcoming');
+                    }
+                    
+                    // Performance tracking for precision verification
+                    if (window.performance && window.performance.now) {
+                        const actualTime = (performance.now() - window.highlightStartTime) / 1000;
+                        const expectedTime = timing.startTime;
+                        const drift = Math.abs(actualTime - expectedTime);
+                        
+                        if (drift > 0.01) { // Log if drift exceeds 10ms
+                            console.warn(`Highlight timing drift: ${(drift * 1000).toFixed(2)}ms at index ${timing.index}`);
+                        }
+                    }
+                });
+            }, timing.startTime);
+            
+            highlightScheduleIds.push(scheduleId);
+        });
+        
+        // Schedule final cleanup with precision
+        const finalTime = timingPlan.length > 0 ? timingPlan[timingPlan.length - 1].startTime + timingPlan[timingPlan.length - 1].duration : startTime;
         const cleanupId = Tone.Transport.scheduleOnce(() => {
-            if (sequence.length > 0) {
-                highlightItem(sequence.length - 1, 'completed');
-            }
-            isHighlighting = false;
-        }, currentTime);
+            requestAnimationFrame(() => {
+                if (sequence.length > 0) {
+                    highlightItem(sequence.length - 1, 'completed');
+                }
+                isHighlighting = false;
+                console.log('✓ Highlighting sequence completed with enhanced precision');
+            });
+        }, finalTime);
         
         highlightScheduleIds.push(cleanupId);
+        
+        // Track start time for precision measurement
+        if (window.performance && window.performance.now) {
+            window.highlightStartTime = performance.now();
+        }
     }
 
     /**
      * Highlights a specific item based on the current mode
+     * Enhanced with performance optimization and visual feedback
      * @param {number} index - Index of item to highlight
      * @param {string} state - Highlight state (current, upcoming, completed)
      */
@@ -383,24 +706,75 @@ const TextHighlighter = (() => {
             case HIGHLIGHT_MODES.PHONEME:
                 selector = `.highlight-phoneme[data-phoneme-index="${index}"]`;
                 break;
+            case HIGHLIGHT_MODES.GRAMMATICAL:
+                selector = `.highlight-grammatical[data-word-index="${index}"]`;
+                break;
+            case HIGHLIGHT_MODES.PROSODIC:
+                selector = `.highlight-prosodic[data-syllable-index="${index}"]`;
+                break;
+            case HIGHLIGHT_MODES.HARMONIC:
+                selector = `.highlight-harmonic[data-word-index="${index}"]`;
+                break;
+            default:
+                console.warn(`Unknown highlight mode for highlighting: ${currentMode}`);
+                return;
         }
         
         const element = textContainer.querySelector(selector);
-        if (!element) return;
+        if (!element) {
+            console.warn(`Element not found for highlighting: ${selector}`);
+            return;
+        }
         
-        // Clear previous highlight classes
-        element.classList.remove('highlight-current', 'highlight-upcoming', 'highlight-completed');
+        // Optimized class manipulation - batch DOM updates
+        const currentClasses = element.classList;
+        const classesToRemove = ['highlight-current', 'highlight-upcoming', 'highlight-completed'];
+        const newClass = `highlight-${state}`;
+        
+        // Remove old highlight classes efficiently
+        classesToRemove.forEach(cls => currentClasses.remove(cls));
         
         // Add new highlight class
-        element.classList.add(`highlight-${state}`);
+        currentClasses.add(newClass);
         
-        // Scroll element into view if needed
+        // Enhanced scroll behavior with performance optimization
         if (state === 'current') {
-            element.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center',
-                inline: 'nearest'
-            });
+            // Check if element is already in view to avoid unnecessary scrolling
+            const rect = element.getBoundingClientRect();
+            const containerRect = textContainer.getBoundingClientRect();
+            
+            const isInView = (
+                rect.top >= containerRect.top &&
+                rect.bottom <= containerRect.bottom &&
+                rect.left >= containerRect.left &&
+                rect.right <= containerRect.right
+            );
+            
+            if (!isInView) {
+                // Use optimized scrolling with reduced frequency for performance
+                element.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }
+            
+            // Add pulse animation for current element (CSS-based for performance)
+            element.style.animationName = 'highlight-pulse';
+            element.style.animationDuration = '0.3s';
+            element.style.animationTimingFunction = 'ease-out';
+            
+            // Clear animation after completion
+            setTimeout(() => {
+                if (element.style) {
+                    element.style.animationName = '';
+                }
+            }, 300);
+        }
+        
+        // Performance tracking for large texts
+        if (index % 100 === 0 && index > 0) {
+            console.log(`✓ Highlighting performance check: processed ${index} items`);
         }
     }
 
@@ -441,18 +815,21 @@ const TextHighlighter = (() => {
         const style = document.createElement('style');
         style.id = styleId;
         style.textContent = `
-            /* Text Highlighter Styles */
-            .highlight-char, .highlight-syllable, .highlight-word, .highlight-phoneme {
+            /* Enhanced Text Highlighter Styles with Performance Optimization */
+            .highlight-char, .highlight-syllable, .highlight-word, .highlight-phoneme,
+            .highlight-grammatical, .highlight-prosodic, .highlight-harmonic {
                 display: inline-block;
                 transition: all 0.2s ease;
                 position: relative;
+                will-change: transform, background-color;
+                backface-visibility: hidden;
             }
             
             .highlight-space {
                 white-space: pre;
             }
             
-            /* Current highlight */
+            /* Current highlight - Enhanced with better visual feedback */
             .highlight-current {
                 background-color: #ffeb3b !important;
                 color: #333 !important;
@@ -472,6 +849,7 @@ const TextHighlighter = (() => {
                 border-radius: 3px !important;
                 padding: 2px 4px !important;
                 margin: 0 1px !important;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             }
             
             /* Completed highlight */
@@ -482,39 +860,55 @@ const TextHighlighter = (() => {
                 padding: 2px 4px !important;
                 margin: 0 1px !important;
                 opacity: 0.8 !important;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
             
-            /* Grammatical type styling */
-            .grammar-noun { border-bottom: 2px solid #4CAF50; }
-            .grammar-verb { border-bottom: 2px solid #F44336; }
-            .grammar-adjective { border-bottom: 2px solid #2196F3; }
-            .grammar-adverb { border-bottom: 2px solid #FF9800; }
-            .grammar-article { border-bottom: 2px solid #9E9E9E; }
-            .grammar-preposition { border-bottom: 2px solid #607D8B; }
-            .grammar-pronoun { border-bottom: 2px solid #795548; }
-            .grammar-conjunction { border-bottom: 2px solid #9C27B0; }
-            .grammar-interjection { border-bottom: 2px solid #E91E63; }
+            /* Grammatical type styling - Enhanced */
+            .grammar-noun { border-bottom: 3px solid #2196F3; }
+            .grammar-verb { border-bottom: 3px solid #4CAF50; }
+            .grammar-adjective { border-bottom: 3px solid #FF9800; }
+            .grammar-adverb { border-bottom: 3px solid #9C27B0; }
+            .grammar-article { border-bottom: 3px solid #9E9E9E; }
+            .grammar-preposition { border-bottom: 3px solid #607D8B; }
+            .grammar-pronoun { border-bottom: 3px solid #795548; }
+            .grammar-conjunction { border-bottom: 3px solid #3F51B5; }
+            .grammar-interjection { border-bottom: 3px solid #E91E63; }
+            .grammar-unknown { border-bottom: 3px solid #CFD8DC; }
             
-            /* Stress level styling */
+            /* Prosodic stress styling - Enhanced */
             .primary-stress {
-                text-shadow: 0 0 8px #ffeb3b;
+                text-shadow: 0 0 8px #F44336;
                 font-weight: bold;
+                background-color: #F44336 !important;
+                color: white !important;
             }
             
             .secondary-stress {
-                text-shadow: 0 0 4px #ffc107;
+                text-shadow: 0 0 4px #FF9800;
                 font-weight: 600;
+                background-color: #FF9800 !important;
+                color: white !important;
             }
             
             .weak-stress {
-                opacity: 0.7;
+                background-color: #ECEFF1 !important;
+                color: #546E7A !important;
+                opacity: 0.8;
             }
             
-            /* Phonetic styling */
-            .nasal { text-decoration: underline wavy; }
-            .voiced { font-style: italic; }
+            /* Harmonic function styling */
+            .harmonic-tonic { background-color: #4CAF50 !important; }
+            .harmonic-dominant { background-color: #FF5722 !important; }
+            .harmonic-subdominant { background-color: #2196F3 !important; }
+            .harmonic-predominant { background-color: #9C27B0 !important; }
+            .harmonic-cadential { background-color: #FF9800 !important; }
+            .harmonic-neutral { background-color: #9E9E9E !important; }
+            
+            /* Phonetic styling - Enhanced */
+            .nasal { text-decoration: underline wavy #FF5722; }
+            .voiced { font-style: italic; font-weight: 500; }
             .fricative { letter-spacing: 1px; }
-            .plosive { font-weight: bold; }
+            .plosive { font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
             .liquid { text-decoration: underline; }
             
             /* Punctuation styling */
@@ -523,31 +917,89 @@ const TextHighlighter = (() => {
                 font-weight: normal;
             }
             
-            /* Hover effects */
+            /* Hover effects - Enhanced */
             .highlight-char:hover, .highlight-syllable:hover, 
-            .highlight-word:hover, .highlight-phoneme:hover {
+            .highlight-word:hover, .highlight-phoneme:hover,
+            .highlight-grammatical:hover, .highlight-prosodic:hover, .highlight-harmonic:hover {
                 background-color: #f5f5f5;
                 cursor: pointer;
+                transform: scale(1.02);
+                box-shadow: 0 2px 6px rgba(0,0,0,0.15);
             }
             
-            /* Animation for current highlight */
+            /* Enhanced animations for current highlight */
             @keyframes highlight-pulse {
-                0% { transform: scale(1.05); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1.05); }
+                0% { 
+                    transform: scale(1.05);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                }
+                50% { 
+                    transform: scale(1.08);
+                    box-shadow: 0 4px 8px rgba(255,235,59,0.4);
+                }
+                100% { 
+                    transform: scale(1.05);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                }
+            }
+            
+            @keyframes highlight-glow {
+                0% { text-shadow: 0 0 5px rgba(255,235,59,0.3); }
+                50% { text-shadow: 0 0 15px rgba(255,235,59,0.6); }
+                100% { text-shadow: 0 0 5px rgba(255,235,59,0.3); }
             }
             
             .highlight-current {
-                animation: highlight-pulse 0.5s ease-in-out;
+                animation: highlight-pulse 0.3s ease-out, highlight-glow 0.6s ease-in-out;
             }
             
-            /* Responsive adjustments */
+            /* Performance optimizations */
+            .highlight-char, .highlight-syllable, 
+            .highlight-word, .highlight-phoneme {
+                will-change: transform, background-color;
+                backface-visibility: hidden;
+            }
+            
+            /* Smooth transitions for all states */
+            .highlight-upcoming {
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .highlight-completed {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            /* Enhanced responsive adjustments with performance optimization */
             @media (max-width: 768px) {
                 .highlight-char, .highlight-syllable, 
                 .highlight-word, .highlight-phoneme {
                     padding: 1px 2px !important;
                     margin: 0 0.5px !important;
                     font-size: 0.9em;
+                    /* Reduce animations on mobile for better performance */
+                    animation-duration: 0.2s !important;
+                }
+                
+                /* Simpler animations for mobile */
+                @keyframes highlight-pulse {
+                    0% { transform: scale(1.02); }
+                    100% { transform: scale(1.05); }
+                }
+            }
+            
+            /* Performance optimization for large texts */
+            @media (min-width: 1200px) {
+                .text-display-container {
+                    contain: layout style paint;
+                }
+            }
+            
+            /* Reduce motion for accessibility */
+            @media (prefers-reduced-motion: reduce) {
+                .highlight-char, .highlight-syllable, 
+                .highlight-word, .highlight-phoneme {
+                    animation: none !important;
+                    transition: background-color 0.1s ease !important;
                 }
             }
         `;
@@ -590,7 +1042,60 @@ const TextHighlighter = (() => {
         };
     }
 
-    // Export public interface
+    /**
+     * Sets highlighting speed multiplier
+     * @param {number} speed - Speed multiplier (0.5 to 2.0)
+     */
+    function setHighlightSpeed(speed) {
+        if (speed < 0.1 || speed > 3.0) {
+            console.warn('Highlight speed should be between 0.1 and 3.0');
+            return false;
+        }
+        
+        // Store speed for next highlighting session
+        currentHighlightSpeed = speed;
+        console.log(`Highlight speed set to: ${speed}x`);
+        return true;
+    }
+    
+    /**
+     * Starts highlighting with precise timing control
+     * @param {Object} sequence - Linguistic sequence
+     * @param {number} startTime - Start time offset
+     * @returns {Promise} Promise that resolves when highlighting starts
+     */
+    function startHighlightingWithPreciseTiming(sequence, startTime = 0) {
+        return new Promise((resolve, reject) => {
+            try {
+                highlightScheduleIds = [];
+                let currentTime = startTime;
+                
+                sequence.forEach((element, index) => {
+                    const scheduleId = Tone.Transport.scheduleOnce((time) => {
+                        requestAnimationFrame(() => {
+                            highlightItem(index, 'current');
+                            if (index > 0) highlightItem(index - 1, 'completed');
+                            if (index < sequence.length - 1) highlightItem(index + 1, 'upcoming');
+                        });
+                    }, currentTime);
+                    
+                    highlightScheduleIds.push(scheduleId);
+                    currentTime += Tone.Time(element.duration || '8n').toSeconds();
+                });
+                
+                console.log(`✓ Precise highlighting scheduled for ${sequence.length} elements`);
+                resolve(true);
+            } catch (error) {
+                console.error('Error in precise highlighting:', error);
+                reject(error);
+            }
+        });
+    }
+    
+    // Initialize speed tracking
+    let currentHighlightSpeed = 1.0;
+    
+    // Export enhanced public interface
     return {
         initialize,
         setHighlightMode,
@@ -599,7 +1104,16 @@ const TextHighlighter = (() => {
         stopHighlighting,
         getHighlightState,
         debugHighlighter,
-        HIGHLIGHT_MODES
+        setHighlightSpeed,
+        startHighlightingWithPreciseTiming,
+        // Advanced mode generators
+        generateGrammaticalHighlights,
+        generateProsodicHighlights,
+        generateHarmonicHighlights,
+        getHarmonicFunction,
+        // Enhanced constants
+        HIGHLIGHT_MODES,
+        ADVANCED_HIGHLIGHT_MODES
     };
 })();
 

@@ -16,35 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareUrlInput = document.getElementById('shareUrlInput');
     const textDisplay = document.getElementById('textDisplay');
     
-    // Initialize text highlighter immediately if elements are available
+    // Text highlighting temporarily disabled for better implementation later
+    console.log('Text highlighting disabled - will implement better version later');
     if (textDisplay) {
-        console.log('textDisplay element found, initializing highlighter...');
-        
-        // Try immediate initialization
-        const initResult = initializeTextHighlighter();
-        
-        if (!initResult) {
-            // If immediate init failed, try again after a short delay
-            setTimeout(() => {
-                console.log('Retrying text highlighter initialization...');
-                const retryResult = initializeTextHighlighter();
-                if (!retryResult) {
-                    console.warn('Text highlighter initialization failed - using basic mode');
-                    showFallbackTextDisplay();
-                }
-            }, 100);
-        }
-    } else {
-        console.error('textDisplay element not found!');
-        // Try to find it after DOM is fully loaded
-        setTimeout(() => {
-            const laterTextDisplay = document.getElementById('textDisplay');
-            if (laterTextDisplay) {
-                console.log('textDisplay found on retry, initializing...');
-                textDisplay = laterTextDisplay;
-                initializeTextHighlighter();
-            }
-        }, 200);
+        showBasicTextDisplay();
     }
 
     let currentScale = AppConfig.DEFAULT_SCALE;
@@ -58,104 +33,108 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentHighlightMode = 'character';
     let currentDialect = 'carioca';
     let isEnhancedMode = false;
+    
+    // Chord accompaniment settings
+    let currentChordSettings = {
+        enabled: false,
+        pattern: 'block',
+        volume: 0.6,
+        bassVolume: 0.4,
+        progression: 'I-V-vi-IV'
+    };
 
-    // Inicializa o áudio na primeira interação do usuário com a página
-    // Isso é crucial para políticas de autoplay dos navegadores
+    // Initialize audio and chord system on first user interaction
     function userInteractionListener() {
         if (!AudioManager.isAudioActive && !audioInitializedByInteraction) {
             AudioManager.initializeAudio().then(() => {
                 audioInitializedByInteraction = true;
-                console.log("Áudio inicializado após interação do usuário.");
-                // Initialize text highlighter after audio is ready
-                initializeTextHighlighter();
+                console.log("Audio initialized after user interaction.");
+                
+                // Text highlighting disabled - using basic display
+                showBasicTextDisplay();
+                
+                // Initialize chord system if available
+                if (typeof ChordPlaybackEngine !== 'undefined') {
+                    console.log('🎼 Initializing chord playback system...');
+                    ChordPlaybackEngine.initializeChordInstruments().then(() => {
+                        console.log('✓ Chord playback system initialized');
+                    }).catch(error => {
+                        console.warn('Chord system initialization failed:', error);
+                    });
+                } else {
+                    console.warn('❌ ChordPlaybackEngine not available');
+                }
+                
                 // Show visual feedback that audio is ready
                 document.body.classList.add('audio-ready');
             }).catch(error => {
-                console.error("Erro ao inicializar áudio após interação:", error);
-                // Show error feedback to user
-                showAudioError("Erro ao inicializar áudio. Verifique se seu navegador suporta Web Audio.");
+                console.error("Error initializing audio after interaction:", error);
+                showAudioError("Error initializing audio. Check if your browser supports Web Audio.");
             });
         }
-        // Remove o listener após a primeira interação para não executar múltiplas vezes
+        // Remove listeners after first interaction
         document.body.removeEventListener('click', userInteractionListener);
         document.body.removeEventListener('keydown', userInteractionListener);
     }
 
     function showAudioError(message) {
-        // Create or update error message element
-        let errorElement = document.getElementById('audioError');
-        if (!errorElement) {
-            errorElement = document.createElement('div');
-            errorElement.id = 'audioError';
-            errorElement.className = 'audio-error';
-            document.querySelector('.container').prepend(errorElement);
+        showAudioMessage(message, 'error');
+    }
+    
+    function showAudioMessage(message, type = 'info') {
+        // Create or update message element
+        let messageElement = document.getElementById('audioMessage');
+        if (!messageElement) {
+            messageElement = document.createElement('div');
+            messageElement.id = 'audioMessage';
+            messageElement.className = 'audio-message';
+            document.querySelector('.container').prepend(messageElement);
         }
-        errorElement.textContent = message;
-        errorElement.style.display = 'block';
         
-        // Hide error after 5 seconds
+        // Update message content and type
+        messageElement.textContent = message;
+        messageElement.className = `audio-message ${type}`;
+        messageElement.style.display = 'block';
+        
+        // Auto-hide based on type
+        const hideDelay = type === 'error' ? 8000 : type === 'success' ? 4000 : 3000;
         setTimeout(() => {
-            errorElement.style.display = 'none';
-        }, 5000);
+            if (messageElement) {
+                messageElement.style.display = 'none';
+            }
+        }, hideDelay);
     }
 
     /**
-     * Initializes the text highlighter system with enhanced error handling
+     * Shows basic text display without highlighting features
      */
-    function initializeTextHighlighter() {
-        console.log('Initializing text highlighter system...');
+    function showBasicTextDisplay() {
+        if (!textDisplay) return;
         
-        // Check for required elements
-        if (!textDisplay) {
-            console.error('textDisplay element not found - text highlighting disabled');
-            return false;
+        const text = textInput.value.trim();
+        if (text) {
+            textDisplay.innerHTML = `
+                <div style="padding: 15px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 4px; font-family: monospace; line-height: 1.6; white-space: pre-wrap;">
+                    ${text}
+                </div>
+            `;
+        } else {
+            showEmptyStateMessage();
         }
+    }
+
+    /**
+     * Shows empty state message
+     */
+    function showEmptyStateMessage() {
+        if (!textDisplay) return;
         
-        // Check for TextHighlighter availability
-        if (typeof TextHighlighter === 'undefined') {
-            console.warn('TextHighlighter module not loaded - using fallback mode');
-            showFallbackTextDisplay();
-            return false;
-        }
-        
-        try {
-            // Initialize the text highlighter
-            TextHighlighter.initialize(textDisplay);
-            console.log('✓ Text Highlighter initialized successfully');
-            
-            // Set up linguistic integration if available
-            if (typeof LinguisticIntegration !== 'undefined') {
-                isEnhancedMode = true;
-                console.log('✓ Enhanced linguistic mode enabled');
-                
-                // Configure linguistic integration
-                LinguisticIntegration.setAnalysisMode(currentAnalysisMode);
-                LinguisticIntegration.setDialect(currentDialect);
-                LinguisticIntegration.setMusicalKey('C');
-            } else {
-                console.warn('LinguisticIntegration not available - using basic character mode');
-                isEnhancedMode = false;
-            }
-            
-            // Set initial highlight mode
-            TextHighlighter.setHighlightMode(currentHighlightMode);
-            
-            // Prepare initial text if any exists
-            const initialText = textInput.value.trim();
-            if (initialText) {
-                console.log('Preparing initial text for highlighting:', initialText.substring(0, 50) + '...');
-                prepareTextForHighlighting();
-            } else {
-                showEmptyStateMessage();
-            }
-            
-            return true;
-            
-        } catch (error) {
-            console.error('Error initializing text highlighter:', error);
-            showFallbackTextDisplay();
-            return false;
-        }
+        textDisplay.innerHTML = `
+            <div style="color: #999; font-style: italic; text-align: center; padding: 20px;">
+                O texto será mostrado aqui.
+                <br><small>Digite algum texto acima para visualizar.</small>
+            </div>
+        `;
     }
     
     /**
@@ -327,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Toggles between enhanced and basic playback modes
+     * Toggles playback with chord support
      */
     function togglePlaybackMode() {
         const text = textInput.value.trim();
@@ -336,105 +315,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
 
-        console.log(`Playback mode check: Enhanced=${isEnhancedMode}, AudioManager.togglePlaybackWithHighlighting=${typeof AudioManager.togglePlaybackWithHighlighting}`);
+        console.log(`Playback mode: Chords=${currentChordSettings.enabled}`);
         
-        // Force enhanced mode if all components are available
-        const hasLinguisticIntegration = typeof LinguisticIntegration !== 'undefined';
-        const hasTextHighlighter = typeof TextHighlighter !== 'undefined';
-        const hasEnhancedAudio = typeof AudioManager.togglePlaybackWithHighlighting !== 'undefined';
-        
-        if (hasLinguisticIntegration && hasTextHighlighter && hasEnhancedAudio) {
-            console.log('✓ All enhanced components available - using enhanced playback');
-            isEnhancedMode = true;
-            return toggleEnhancedPlayback(text);
+        // Use basic playback with chord accompaniment if enabled
+        if (currentChordSettings.enabled && typeof AudioManager.togglePlaybackWithChords !== 'undefined') {
+            console.log('🎼 Using basic playback with chord accompaniment');
+            return AudioManager.togglePlaybackWithChords(text, currentScale, currentChordSettings);
         } else {
-            console.log(`⚠️ Using basic playback - Missing: ${!hasLinguisticIntegration ? 'LinguisticIntegration ' : ''}${!hasTextHighlighter ? 'TextHighlighter ' : ''}${!hasEnhancedAudio ? 'EnhancedAudio' : ''}`);
+            console.log('🎵 Using basic playback mode');
             return toggleBasicPlayback(text);
         }
-    }
-
-    /**
-     * Enhanced playback with linguistic analysis and highlighting
-     */
-    function toggleEnhancedPlayback(text) {
-        const isCurrentlyPlaying = Tone.Transport.state === 'started';
-        
-        if (isCurrentlyPlaying) {
-            // Stop playback
-            console.log('Stopping enhanced playback...');
-            AudioManager.stopAllSounds();
-            hideTextDisplay();
-            playPauseButton.textContent = 'Play';
-            return false;
-        } else {
-            // Start enhanced playback
-            console.log('Starting enhanced playback...');
-            showTextDisplay();
-            
-            // Ensure text is prepared for highlighting before starting playback
-            prepareTextForHighlighting();
-            
-            try {
-                const result = AudioManager.togglePlaybackWithHighlighting(
-                    text, 
-                    currentScale, 
-                    currentAnalysisMode, 
-                    currentHighlightMode
-                );
-                
-                if (result) {
-                    playPauseButton.textContent = 'Pause';
-                    console.log(`✓ Enhanced playback started: ${currentAnalysisMode} + ${currentHighlightMode}`);
-                    
-                    // Add event listener for transport events
-                    setupTransportEventListeners();
-                    
-                    return true;
-                } else {
-                    console.warn('Enhanced playback failed, trying basic mode');
-                    return toggleBasicPlayback(text);
-                }
-            } catch (error) {
-                console.error('Enhanced playback failed, falling back to basic:', error);
-                return toggleBasicPlayback(text);
-            }
-        }
-    }
-    
-    /**
-     * Sets up event listeners for Tone.js Transport events
-     */
-    function setupTransportEventListeners() {
-        // Clean up existing listeners
-        Tone.Transport.off('start');
-        Tone.Transport.off('stop');
-        
-        // Add new listeners
-        Tone.Transport.on('start', () => {
-            console.log('✓ Audio transport started');
-            if (textDisplay) {
-                textDisplay.classList.add('active');
-            }
-        });
-        
-        Tone.Transport.on('stop', () => {
-            console.log('✓ Audio transport stopped');
-            if (textDisplay) {
-                textDisplay.classList.remove('active');
-            }
-            
-            // Clean up highlighting
-            if (typeof TextHighlighter !== 'undefined') {
-                try {
-                    TextHighlighter.stopHighlighting();
-                } catch (error) {
-                    console.warn('Error stopping highlighting on transport stop:', error);
-                }
-            }
-            
-            // Reset play button
-            playPauseButton.textContent = 'Play';
-        });
     }
 
     /**
@@ -792,7 +682,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('LinguisticIntegration not available - Enhanced mode disabled');
     }
 
-    // Initialize text highlighter if available
+    // DISABLED: Initialize text highlighter
+    // Text highlighting temporarily disabled for better implementation later
+    /*
     if (typeof TextHighlighter !== 'undefined' && textDisplay) {
         const initSuccess = initializeTextHighlighter();
         if (initSuccess) {
@@ -805,19 +697,20 @@ document.addEventListener('DOMContentLoaded', () => {
             TextHighlighter: typeof TextHighlighter !== 'undefined',
             textDisplay: !!textDisplay
         });
-    } 
+    }
+    */ 
 
-    UIModule.initializeUIControls(AppConfig, updateSettings, {
+    // Enhanced UI initialization with chord settings
+    const initialValues = {
         scale: currentScale,
         instrument: currentInstrument,
         eq: currentEQ,
         mod: currentMod,
         tempo: currentTempo,
         rhythm: currentRhythm,
-        analysisMode: currentAnalysisMode,
-        highlightMode: currentHighlightMode,
-        dialect: currentDialect
-    });
+        chords: currentChordSettings
+    };
+    UIModule.initializeUIControls(AppConfig, onSettingsChange, initialValues);
     
     // Initialize recent creations list
     if (StorageManager.isLocalStorageAvailable()) {
@@ -860,13 +753,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.addEventListener('keydown', initialAudioSetupListener, { once: true });
     }
 
-    function updateSettings(newSettings) {
-        let overallSettingsChanged = false;
-
-        if (newSettings.scale && newSettings.scale !== currentScale) {
-            currentScale = newSettings.scale;
+    function onSettingsChange(changes) {
+        console.log('Settings changed:', changes);
+        
+        if (changes.scale && changes.scale !== currentScale) {
+            currentScale = changes.scale;
             console.log("Escala alterada para:", currentScale);
-            overallSettingsChanged = true;
             // Se estiver tocando com Tone.Transport, precisa parar e, se desejar, reiniciar com a nova escala.
             // Por enquanto, a mudança de escala só afetará novas notas tocadas individualmente ou o próximo play.
             if (Tone.Transport.state === 'started') {
@@ -874,28 +766,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 playPauseButton.textContent = 'Play'; 
             }
         }
-        if (newSettings.instrument && newSettings.instrument !== currentInstrument) {
-            currentInstrument = newSettings.instrument;
+        if (changes.instrument && changes.instrument !== currentInstrument) {
+            currentInstrument = changes.instrument;
             AudioManager.loadInstrument(currentInstrument);
             console.log("Instrumento alterado para:", currentInstrument);
-            overallSettingsChanged = true;
         }
         
         let eqChanged = false;
-        if (newSettings.eq) {
-            const incomingEQ = { ...currentEQ, ...newSettings.eq }; // Merge para pegar apenas o que mudou
+        if (changes.eq) {
+            const incomingEQ = { ...currentEQ, ...changes.eq }; // Merge para pegar apenas o que mudou
             if (incomingEQ.low !== currentEQ.low) { currentEQ.low = incomingEQ.low; eqChanged = true; }
             if (incomingEQ.mid !== currentEQ.mid) { currentEQ.mid = incomingEQ.mid; eqChanged = true; }
             if (incomingEQ.high !== currentEQ.high) { currentEQ.high = incomingEQ.high; eqChanged = true; }
             if (eqChanged) {
                 AudioManager.updateEQ(currentEQ.low, currentEQ.mid, currentEQ.high);
-                overallSettingsChanged = true;
             }
         }
 
         let modChanged = false;
-        if (newSettings.mod) {
-            const incomingMod = { ...currentMod, ...newSettings.mod }; // Merge
+        if (changes.mod) {
+            const incomingMod = { ...currentMod, ...changes.mod }; // Merge
             if (incomingMod.vibratoRate !== currentMod.vibratoRate) { currentMod.vibratoRate = incomingMod.vibratoRate; modChanged = true; }
             if (incomingMod.vibratoDepth !== currentMod.vibratoDepth) { currentMod.vibratoDepth = incomingMod.vibratoDepth; modChanged = true; }
             if (incomingMod.tremoloRate !== currentMod.tremoloRate) { currentMod.tremoloRate = incomingMod.tremoloRate; modChanged = true; }
@@ -905,21 +795,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentMod.vibratoRate, currentMod.vibratoDepth,
                     currentMod.tremoloRate, currentMod.tremoloDepth
                 );
-                overallSettingsChanged = true;
             }
         }
 
-        if (newSettings.tempo && newSettings.tempo !== currentTempo) {
-            currentTempo = newSettings.tempo;
+        if (changes.tempo && changes.tempo !== currentTempo) {
+            currentTempo = changes.tempo;
             AudioManager.updateTempo(currentTempo);
             console.log("Tempo alterado para:", currentTempo, "BPM");
-            overallSettingsChanged = true;
         }
         
-        if (newSettings.rhythm && newSettings.rhythm !== currentRhythm) {
-            currentRhythm = newSettings.rhythm;
+        if (changes.rhythm && changes.rhythm !== currentRhythm) {
+            currentRhythm = changes.rhythm;
             console.log("Padrão rítmico alterado para:", currentRhythm);
-            overallSettingsChanged = true;
             // Se estiver tocando, parar para aplicar novo padrão
             if (Tone.Transport.state === 'started') {
                 AudioManager.stopAllSounds();
@@ -928,8 +815,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Handle linguistic analysis settings
-        if (newSettings.analysisMode && newSettings.analysisMode !== currentAnalysisMode) {
-            currentAnalysisMode = newSettings.analysisMode;
+        if (changes.analysisMode && changes.analysisMode !== currentAnalysisMode) {
+            currentAnalysisMode = changes.analysisMode;
             if (typeof LinguisticIntegration !== 'undefined') {
                 LinguisticIntegration.setAnalysisMode(currentAnalysisMode);
             }
@@ -938,11 +825,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Reprepare text with new analysis mode
             prepareTextForHighlighting();
             
-            overallSettingsChanged = true;
         }
         
-        if (newSettings.highlightMode && newSettings.highlightMode !== currentHighlightMode) {
-            currentHighlightMode = newSettings.highlightMode;
+        if (changes.highlightMode && changes.highlightMode !== currentHighlightMode) {
+            currentHighlightMode = changes.highlightMode;
             if (typeof TextHighlighter !== 'undefined') {
                 TextHighlighter.setHighlightMode(currentHighlightMode);
             }
@@ -951,57 +837,59 @@ document.addEventListener('DOMContentLoaded', () => {
             // Reprepare text with new highlight mode
             prepareTextForHighlighting();
             
-            overallSettingsChanged = true;
         }
         
-        if (newSettings.dialect && newSettings.dialect !== currentDialect) {
-            currentDialect = newSettings.dialect;
+        if (changes.dialect && changes.dialect !== currentDialect) {
+            currentDialect = changes.dialect;
             if (typeof LinguisticIntegration !== 'undefined') {
                 LinguisticIntegration.setDialect(currentDialect);
             }
             console.log("Dialeto alterado para:", currentDialect);
-            overallSettingsChanged = true;
-        }
-
-        if (overallSettingsChanged) {
-            console.log('Configurações atualizadas:', { 
-                scale: currentScale, 
-                instrument: currentInstrument, 
-                eq: { ...currentEQ }, 
-                mod: { ...currentMod },
-                tempo: currentTempo,
-                rhythm: currentRhythm,
-                analysisMode: currentAnalysisMode,
-                highlightMode: currentHighlightMode,
-                dialect: currentDialect
-            });
-            updateShareUrlInput();
-            
-            // Auto-save user preferences
-            if (StorageManager.isLocalStorageAvailable()) {
-                const preferences = {
-                    scale: currentScale,
-                    instrument: currentInstrument,
-                    tempo: currentTempo
-                };
-                StorageManager.autoSavePreferences(preferences);
-            }
         }
         
-        // Handle storage actions
-        if (newSettings.action) {
-            switch (newSettings.action) {
-                case 'saveCurrent':
-                    saveCurrentCreation();
-                    break;
-                case 'loadRecent':
-                    loadRecentCreation(newSettings.id);
-                    break;
-                case 'clearRecent':
-                    clearRecentCreations();
-                    break;
+        // Handle chord accompaniment settings
+        if (changes.chords) {
+            console.log('Chord settings changed:', changes.chords);
+            
+            // Update current chord settings
+            Object.assign(currentChordSettings, changes.chords);
+            
+            // Apply chord settings to engine if available
+            if (typeof ChordPlaybackEngine !== 'undefined') {
+                if (changes.chords.enabled !== undefined) {
+                    ChordPlaybackEngine.setAccompanimentEnabled(changes.chords.enabled);
+                }
+                if (changes.chords.pattern) {
+                    ChordPlaybackEngine.setAccompanimentPattern(changes.chords.pattern);
+                }
+                if (changes.chords.volume !== undefined) {
+                    // Use enhanced volume mixing for better audio balance
+                    if (ChordPlaybackEngine.setAccompanimentVolumeWithMixing) {
+                        ChordPlaybackEngine.setAccompanimentVolumeWithMixing(changes.chords.volume, true);
+                    } else {
+                        ChordPlaybackEngine.setAccompanimentVolume(changes.chords.volume);
+                    }
+                }
+                if (changes.chords.bassVolume !== undefined) {
+                    ChordPlaybackEngine.setBassVolume(changes.chords.bassVolume);
+                }
             }
+            
+            // Show chord status message
+            if (changes.chords.enabled !== undefined) {
+                showAudioMessage(
+                    changes.chords.enabled 
+                        ? '🎼 Acompanhamento de acordes ativado!' 
+                        : '🎼 Acompanhamento de acordes desativado',
+                    changes.chords.enabled ? 'success' : 'info'
+                );
+            }
+            
+            console.log('✓ Chord settings applied:', currentChordSettings);
         }
+        
+        // Update URL when settings change
+        updateShareUrlInput();
     }
     
     function loadUserPreferencesFromStorage() {
@@ -1198,4 +1086,161 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         document.addEventListener('keydown', escHandler);
     }
+    
+    // Add event listeners for user interaction
+    document.body.addEventListener('click', userInteractionListener);
+    document.body.addEventListener('keydown', userInteractionListener);
+    
+    // Update text display when user types
+    textInput.addEventListener('input', () => {
+        showBasicTextDisplay();
+    });
+    
+    // Initialize UI controls
+    const onSettingsChange = (settings) => {
+        console.log('Settings changed:', settings);
+        
+        if (settings.scale) {
+            currentScale = settings.scale;
+            console.log('Scale changed to:', currentScale);
+        }
+        
+        if (settings.instrument) {
+            currentInstrument = settings.instrument;
+            console.log('Instrument changed to:', currentInstrument);
+            AudioManager.setCurrentInstrument(currentInstrument);
+        }
+        
+        if (settings.tempo) {
+            currentTempo = settings.tempo;
+            console.log('Tempo changed to:', currentTempo);
+            AudioManager.setTempo(currentTempo);
+        }
+        
+        if (settings.rhythm) {
+            currentRhythm = settings.rhythm;
+            console.log('Rhythm changed to:', currentRhythm);
+        }
+        
+        if (settings.eq) {
+            currentEQ = { ...currentEQ, ...settings.eq };
+            console.log('EQ settings changed:', currentEQ);
+            AudioManager.updateEQSettings(currentEQ);
+        }
+        
+        if (settings.mod) {
+            currentMod = { ...currentMod, ...settings.mod };
+            console.log('Modulation settings changed:', currentMod);
+            AudioManager.updateModulationSettings(currentMod);
+        }
+        
+        if (settings.chords) {
+            currentChordSettings = { ...currentChordSettings, ...settings.chords };
+            console.log('🎼 Chord settings changed:', currentChordSettings);
+            
+            // Update chord engine if available
+            if (typeof ChordPlaybackEngine !== 'undefined') {
+                ChordPlaybackEngine.setAccompanimentEnabled(currentChordSettings.enabled);
+                ChordPlaybackEngine.setAccompanimentPattern(currentChordSettings.pattern);
+                ChordPlaybackEngine.setAccompanimentVolume(currentChordSettings.volume);
+                ChordPlaybackEngine.setBassVolume(currentChordSettings.bassVolume);
+            }
+        }
+        
+        // Save settings to localStorage
+        const allSettings = {
+            scale: currentScale,
+            instrument: currentInstrument,
+            tempo: currentTempo,
+            rhythm: currentRhythm,
+            eq: currentEQ,
+            mod: currentMod,
+            chords: currentChordSettings
+        };
+        
+        try {
+            localStorage.setItem('textToMidiSettings', JSON.stringify(allSettings));
+            console.log('✓ Settings saved to localStorage');
+        } catch (error) {
+            console.warn('Failed to save settings to localStorage:', error);
+        }
+    };
+    
+    // Load saved settings
+    let savedSettings = {};
+    try {
+        const saved = localStorage.getItem('textToMidiSettings');
+        if (saved) {
+            savedSettings = JSON.parse(saved);
+            console.log('✓ Loaded saved settings:', savedSettings);
+            
+            // Apply saved settings
+            if (savedSettings.scale) currentScale = savedSettings.scale;
+            if (savedSettings.instrument) currentInstrument = savedSettings.instrument;
+            if (savedSettings.tempo) currentTempo = savedSettings.tempo;
+            if (savedSettings.rhythm) currentRhythm = savedSettings.rhythm;
+            if (savedSettings.eq) currentEQ = { ...currentEQ, ...savedSettings.eq };
+            if (savedSettings.mod) currentMod = { ...currentMod, ...savedSettings.mod };
+            if (savedSettings.chords) currentChordSettings = { ...currentChordSettings, ...savedSettings.chords };
+        }
+    } catch (error) {
+        console.warn('Failed to load saved settings:', error);
+    }
+    
+    // Initialize UI controls with saved settings
+    UIModule.initializeUIControls(AppConfig, onSettingsChange, savedSettings);
+    
+    // Connect play/pause button
+    playPauseButton.addEventListener('click', () => {
+        togglePlaybackMode();
+    });
+    
+    // Connect share button
+    shareButton.addEventListener('click', () => {
+        const text = textInput.value.trim();
+        if (!text) {
+            showAudioError('Digite um texto para compartilhar');
+            return;
+        }
+        
+        const encodedText = encodeURIComponent(text);
+        const shareUrl = `${window.location.origin}${window.location.pathname}?text=${encodedText}`;
+        shareUrlInput.value = shareUrl;
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            showAudioMessage('Link copiado para a área de transferência!', 'success');
+        }).catch(() => {
+            showAudioMessage('Link criado! Copie manualmente do campo acima.', 'info');
+        });
+    });
+    
+    // Connect QR button
+    qrButton.addEventListener('click', () => {
+        const text = textInput.value.trim();
+        if (!text) {
+            showAudioError('Digite um texto para gerar QR Code');
+            return;
+        }
+        
+        const encodedText = encodeURIComponent(text);
+        const shareUrl = `${window.location.origin}${window.location.pathname}?text=${encodedText}`;
+        showQRCode(shareUrl);
+    });
+    
+    // Check URL parameters for shared text
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedText = urlParams.get('text');
+    if (sharedText) {
+        textInput.value = decodeURIComponent(sharedText);
+        showBasicTextDisplay();
+        showAudioMessage('Texto compartilhado carregado!', 'success');
+    }
+    
+    // Initialize display
+    showBasicTextDisplay();
+    
+    console.log('✓ Text-to-MIDI application initialized successfully');
+    console.log('🎼 Chord functionality:', typeof ChordPlaybackEngine !== 'undefined' ? 'Available' : 'Not Available');
+    console.log('🎵 Text highlighting:', 'Disabled (will implement better version later)');
 }); 

@@ -1,3 +1,7 @@
+---
+trigger: always_on
+alwaysApply: true
+---
 # Development Rules and Standards
 
 ## 1. CODE STYLE GUIDELINES

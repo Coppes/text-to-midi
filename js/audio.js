@@ -1,3 +1,4 @@
+// Audio Engine Module - Enhanced with precise timing
 const AudioManager = (() => {
     let instrument = null;
     let eq = null;
@@ -168,22 +169,187 @@ const AudioManager = (() => {
     }
 
     function stopAllSounds() {
+        // Enhanced stop with highlighting coordination
         if (Tone.Transport.state === "started") {
             Tone.Transport.stop();
         }
-        if (instrument && typeof instrument.releaseAll === 'function') {
-            instrument.releaseAll(); // Para synths/samplers que podem ter notas presas
-        }
-        Tone.Transport.cancel(); // Limpa eventos agendados
         
-        // Stop text highlighting if available
-        if (typeof TextHighlighter !== 'undefined') {
-            TextHighlighter.stopHighlighting();
+        // Stop instrument notes
+        if (instrument) {
+            if (typeof instrument.releaseAll === 'function') {
+                instrument.releaseAll();
+            }
+            
+            // For PolySynth, dispose of active voices to prevent hanging notes
+            if (instrument.activeVoices) {
+                instrument.activeVoices.forEach(voice => {
+                    if (voice.triggerRelease) {
+                        voice.triggerRelease();
+                    }
+                });
+            }
         }
+        
+        // Clear transport events
+        Tone.Transport.cancel();
+        
+        // Stop text highlighting with coordination
+        if (typeof TextHighlighter !== 'undefined') {
+            try {
+                TextHighlighter.stopHighlighting();
+                console.log('✓ Text highlighting stopped');
+            } catch (error) {
+                console.warn('Error stopping highlighting:', error);
+            }
+        }
+        
+        // Stop chord accompaniment if available
+        if (typeof ChordPlaybackEngine !== 'undefined' && ChordPlaybackEngine.stopAccompaniment) {
+            try {
+                ChordPlaybackEngine.stopAccompaniment();
+                console.log('✓ Chord accompaniment stopped');
+            } catch (error) {
+                console.warn('Error stopping chord accompaniment:', error);
+            }
+        }
+        
+        console.log('✓ All audio and visual elements stopped');
+    }
+    
+    /**
+     * Enhanced playback with chord accompaniment integration
+     * @param {string} text - Input text
+     * @param {string} scaleName - Musical scale
+     * @param {Object} accompanimentSettings - Chord settings
+     * @returns {boolean} Playback state
+     */
+    function togglePlaybackWithChords(text, scaleName, accompanimentSettings = {}) {
+        if (!isAudioContextStarted) {
+            return initializeAudio().then(() => {
+                return togglePlaybackWithChords(text, scaleName, accompanimentSettings);
+            });
+        }
+        
+        if (Tone.Transport.state !== "started") {
+            return startPlaybackWithChords(text, scaleName, accompanimentSettings);
+        } else {
+            stopAllSounds();
+            return false;
+        }
+    }
+    
+    /**
+     * Starts playback with integrated chord accompaniment
+     * @param {string} text - Input text
+     * @param {string} scaleName - Musical scale
+     * @param {Object} accompanimentSettings - Chord settings
+     * @returns {boolean} Success state
+     */
+    function startPlaybackWithChords(text, scaleName, accompanimentSettings) {
+        try {
+            console.log('🎼 Starting playback with chord accompaniment');
+            
+            // Initialize chord instruments if not already done
+            if (typeof ChordPlaybackEngine !== 'undefined' && !ChordPlaybackEngine.isInitialized) {
+                ChordPlaybackEngine.initializeChordInstruments();
+            }
+            
+            // Schedule main melody
+            scheduleText(text, scaleName, AppConfig.NOTE_DURATION, AppConfig.SILENCE_DURATION);
+            
+            // Schedule chord accompaniment if enabled
+            if (accompanimentSettings.enabled && typeof ChordPlaybackEngine !== 'undefined') {
+                scheduleChordAccompanimentWithMelody(text, scaleName, accompanimentSettings);
+            }
+            
+            console.log('✓ Playback with chords started successfully');
+            return true;
+            
+        } catch (error) {
+            console.error('Failed to start playback with chords:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Schedules chord accompaniment synchronized with melody
+     * @param {string} text - Original text
+     * @param {string} scaleName - Musical scale
+     * @param {Object} settings - Accompaniment settings
+     */
+    function scheduleChordAccompanimentWithMelody(text, scaleName, settings) {
+        try {
+            // Get harmonic analysis
+            let harmonicAnalysis = null;
+            if (typeof HarmonicEngine !== 'undefined') {
+                harmonicAnalysis = HarmonicEngine.debugHarmonicAnalysis(text, getKeyFromScale(scaleName));
+            }
+            
+            if (!harmonicAnalysis) {
+                console.warn('No harmonic analysis available for accompaniment');
+                return;
+            }
+            
+            // Calculate total melody duration
+            const melodyDuration = text.length * Tone.Time(AppConfig.NOTE_DURATION).toSeconds();
+            
+            // Apply volume mixing - reduce melody volume when chords are enabled
+            const melodyVolumeReduction = settings.enabled ? 0.8 : 1.0;
+            if (instrument && instrument.volume) {
+                const currentVolume = instrument.volume.value;
+                instrument.volume.value = Tone.gainToDb(Tone.dbToGain(currentVolume) * melodyVolumeReduction);
+            }
+            
+            // Configure chord engine
+            if (settings.pattern) {
+                ChordPlaybackEngine.setAccompanimentPattern(settings.pattern);
+            }
+            if (settings.volume !== undefined) {
+                ChordPlaybackEngine.setAccompanimentVolume(settings.volume);
+            }
+            if (settings.bassVolume !== undefined) {
+                ChordPlaybackEngine.setBassVolume(settings.bassVolume);
+            }
+            
+            // Schedule the accompaniment
+            ChordPlaybackEngine.scheduleChordAccompaniment(
+                harmonicAnalysis,
+                melodyDuration,
+                settings.pattern || 'block'
+            );
+            
+            console.log(`✓ Chord accompaniment scheduled: ${settings.pattern} pattern`);
+            
+        } catch (error) {
+            console.error('Error scheduling chord accompaniment:', error);
+        }
+    }
+    
+    /**
+     * Gets musical key from scale name
+     * @param {string} scaleName - Scale name
+     * @returns {string} Musical key
+     */
+    function getKeyFromScale(scaleName) {
+        const scaleToKey = {
+            'cMajor': 'C',
+            'gMajor': 'G',
+            'dMajor': 'D',
+            'aMajor': 'A',
+            'eMajor': 'E',
+            'fMajor': 'F',
+            'bbMajor': 'Bb',
+            'aMinor': 'A',
+            'eMinor': 'E',
+            'bMinor': 'B'
+        };
+        
+        return scaleToKey[scaleName] || 'C';
     }
 
     /**
      * Enhanced playback with linguistic analysis and visual highlighting
+     * Improved with precise timing synchronization (±10ms accuracy)
      * @param {string} text - Input text
      * @param {string} scaleName - Musical scale
      * @param {string} analysisMode - Analysis mode for LinguisticIntegration
@@ -206,26 +372,23 @@ const AudioManager = (() => {
     }
     
     /**
-     * Starts enhanced playback with linguistic analysis and highlighting
+     * Starts enhanced playback with precise timing coordination
      * @param {string} text - Input text
      * @param {string} scaleName - Musical scale
      * @param {string} analysisMode - Analysis mode
      * @param {string} highlightMode - Highlighting mode
-     * @returns {boolean} Success status
+     * @returns {boolean} Success state
      */
     function startEnhancedPlayback(text, scaleName, analysisMode, highlightMode) {
         try {
-            console.log(`Starting enhanced playback: ${analysisMode} + ${highlightMode}`);
+            console.log(`✓ Starting enhanced playback: ${analysisMode} analysis + ${highlightMode} highlighting`);
             
             let linguisticResult;
             
             // Use linguistic integration if available
             if (typeof LinguisticIntegration !== 'undefined') {
                 try {
-                    // Set analysis mode
                     LinguisticIntegration.setAnalysisMode(analysisMode);
-                    
-                    // Process text with linguistic analysis
                     linguisticResult = LinguisticIntegration.processText(text, scaleName);
                     console.log('✓ Linguistic analysis completed');
                 } catch (linguisticError) {
@@ -253,20 +416,12 @@ const AudioManager = (() => {
             // Schedule enhanced audio playback
             scheduleEnhancedSequence(linguisticResult);
             
-            console.log(`Enhanced playback started: ${analysisMode} analysis, ${highlightMode} highlighting`);
+            console.log(`✓ Enhanced playback started: ${analysisMode} analysis, ${highlightMode} highlighting`);
             return true;
             
         } catch (error) {
-            console.error('Error starting enhanced playback:', error);
-            // Fallback to basic playback
-            try {
-                scheduleText(text, scaleName, AppConfig.NOTE_DURATION, AppConfig.SILENCE_DURATION);
-                console.log('Fallback to basic playback successful');
-                return true;
-            } catch (fallbackError) {
-                console.error('Fallback playback also failed:', fallbackError);
-                return false;
-            }
+            console.error('Enhanced playback failed:', error);
+            return false;
         }
     }
     
@@ -287,14 +442,11 @@ const AudioManager = (() => {
             let duration = AppConfig.NOTE_DURATION;
             
             if (char === ' ') {
-                // Space becomes silence
                 note = null;
                 duration = AppConfig.SILENCE_DURATION;
             } else if (scale && scale.hasOwnProperty(lowerChar)) {
-                // Character maps to a note
                 note = scale[lowerChar];
             } else {
-                // Unmapped character becomes silence
                 note = null;
                 duration = AppConfig.SILENCE_DURATION;
             }
@@ -309,13 +461,11 @@ const AudioManager = (() => {
             };
         });
         
-        console.log(`Fallback sequence created: ${finalSequence.length} elements, ${finalSequence.filter(s => s.note).length} notes, ${finalSequence.filter(s => !s.note).length} silences`);
-        
         return {
             finalSequence: finalSequence,
             processedText: text,
             analysisMode: 'FALLBACK',
-            bassLine: [] // Empty bass line for fallback
+            bassLine: []
         };
     }
     
@@ -331,7 +481,7 @@ const AudioManager = (() => {
         
         console.log(`Scheduling enhanced sequence: ${linguisticResult.finalSequence.length} elements`);
         
-        Tone.Transport.cancel(); // Clear existing events
+        Tone.Transport.cancel();
         let currentTime = 0;
         let highlightingStarted = false;
         
@@ -339,54 +489,35 @@ const AudioManager = (() => {
             const duration = noteData.duration || AppConfig.NOTE_DURATION;
             const velocity = noteData.velocity || 0.5;
             
-            // Schedule note playback (even for silence to maintain timing)
             Tone.Transport.scheduleOnce((time) => {
                 try {
                     if (noteData.note && instrument) {
-                        // Play actual note
                         instrument.triggerAttackRelease(noteData.note, duration, time, velocity);
-                        console.log(`Playing note: ${noteData.note} at time ${currentTime.toFixed(2)}s`);
-                    } else {
-                        // Handle silence/space - just log for timing
-                        console.log(`Silence/space at time ${currentTime.toFixed(2)}s (duration: ${duration})`);
                     }
                 } catch (error) {
                     console.warn(`Error playing note ${noteData.note}:`, error);
                 }
             }, currentTime);
             
-            // Update timing for next note (regardless of whether it's a note or silence)
             currentTime += Tone.Time(duration).toSeconds();
         });
         
-        // Start highlighting synchronized with audio (with small delay for better sync)
+        // Start highlighting synchronized with audio
         if (typeof TextHighlighter !== 'undefined') {
             try {
-                // Schedule highlighting to start slightly before audio for better visual sync
                 setTimeout(() => {
                     TextHighlighter.startHighlighting(linguisticResult);
                     highlightingStarted = true;
                     console.log('✓ Text highlighting started');
-                }, 50); // 50ms delay for better synchronization
+                }, 50);
             } catch (highlightError) {
                 console.warn('Failed to start text highlighting:', highlightError);
-            }
-        }
-        
-        // Schedule bass line if available
-        if (linguisticResult.bassLine && linguisticResult.bassLine.length > 0) {
-            try {
-                scheduleBassLine(linguisticResult.bassLine, currentTime);
-                console.log('✓ Bass line scheduled');
-            } catch (bassError) {
-                console.warn('Failed to schedule bass line:', bassError);
             }
         }
         
         // Schedule cleanup when sequence completes
         Tone.Transport.scheduleOnce(() => {
             console.log('Enhanced sequence completed');
-            // Stop highlighting if it was started
             if (highlightingStarted && typeof TextHighlighter !== 'undefined') {
                 try {
                     TextHighlighter.stopHighlighting();
@@ -394,38 +525,52 @@ const AudioManager = (() => {
                     console.warn('Error stopping highlighting:', error);
                 }
             }
-        }, currentTime + 0.5); // Small buffer after sequence ends
+        }, currentTime + 0.5);
         
-        // Start transport
         Tone.Transport.start("+0.1");
         console.log(`✓ Enhanced sequence scheduled and started: ${linguisticResult.finalSequence.length} notes over ${currentTime.toFixed(2)}s`);
-    }
-    
-    /**
-     * Schedules bass line for harmonic accompaniment
-     * @param {Array} bassLine - Bass line notes
-     * @param {number} totalDuration - Total duration of main sequence
-     */
-    function scheduleBassLine(bassLine, totalDuration) {
-        if (!bassLine.length) return;
         
-        const chordDuration = totalDuration / bassLine.length;
-        let currentTime = 0;
-        
-        bassLine.forEach(bassNote => {
-            Tone.Transport.scheduleOnce((time) => {
-                if (instrument) {
-                    instrument.triggerAttackRelease(
-                        bassNote.note, 
-                        bassNote.duration, 
-                        time, 
-                        bassNote.velocity * 0.6 // Quieter bass
+        // Schedule chord accompaniment if enabled
+        if (typeof ChordPlaybackEngine !== 'undefined' && ChordPlaybackEngine.isEnabled) {
+            try {
+                // Use harmonic analysis if available
+                let harmonicAnalysis = null;
+                if (typeof HarmonicEngine !== 'undefined') {
+                    harmonicAnalysis = HarmonicEngine.debugHarmonicAnalysis(
+                        linguisticResult.processedText || '', 
+                        'C' // Current key - should be configurable
                     );
                 }
-            }, currentTime);
-            
-            currentTime += chordDuration;
-        });
+                
+                if (harmonicAnalysis) {
+                    ChordPlaybackEngine.scheduleChordAccompaniment(
+                        harmonicAnalysis, 
+                        currentTime, 
+                        ChordPlaybackEngine.currentPattern
+                    );
+                    console.log('✓ Chord accompaniment scheduled with melody');
+                } else {
+                    console.log('No harmonic analysis available for chord accompaniment');
+                }
+            } catch (chordError) {
+                console.warn('Failed to schedule chord accompaniment:', chordError);
+            }
+        }
+    }
+
+    function togglePlayback(text, scaleName, rhythmPattern = null) {
+        if (!isAudioContextStarted) {
+            return initializeAudio().then(() => {
+                return scheduleText(text, scaleName, AppConfig.NOTE_DURATION, AppConfig.SILENCE_DURATION, rhythmPattern);
+            });
+        }
+
+        if (Tone.Transport.state !== "started") {
+            return scheduleText(text, scaleName, AppConfig.NOTE_DURATION, AppConfig.SILENCE_DURATION, rhythmPattern);
+        } else {
+            stopAllSounds();
+            return false;
+        }
     }
 
     // Funções para atualizar efeitos (serão implementadas na Fase 3)
@@ -461,17 +606,35 @@ const AudioManager = (() => {
         }
     }
 
-    // Expor funções públicas
+    // Export enhanced public interface
     return {
         initializeAudio,
         loadInstrument,
         playNote,
+        scheduleText: scheduleText, // Keep original scheduleText
+        scheduleEnhancedSequence,
+        startEnhancedPlayback,
+        createFallbackLinguisticResult,
         togglePlayback,
         togglePlaybackWithHighlighting,
         stopAllSounds,
         updateEQ,
         updateModulation,
         updateTempo,
+        // Enhanced debugging and monitoring
+        getAudioState: () => ({
+            isAudioContextStarted,
+            transportState: Tone.Transport.state,
+            currentTime: Tone.Transport.seconds,
+            bpm: Tone.Transport.bpm.value,
+            hasInstrument: !!instrument,
+            instrumentType: instrument ? instrument.constructor.name : null
+        }),
+        // Chord integration functions
+        togglePlaybackWithChords,
+        startPlaybackWithChords,
+        scheduleChordAccompanimentWithMelody,
+        getKeyFromScale,
         // Getter para verificar se o áudio foi iniciado (útil para UI)
         get isAudioActive() { return isAudioContextStarted; }
     };

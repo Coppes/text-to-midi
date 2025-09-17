@@ -1,3 +1,7 @@
+---
+trigger: always_on
+alwaysApply: true
+---
 # AI Assistant Rules for Text-to-MIDI Project
 
 ## 1. ARCHITECTURAL ENFORCEMENT

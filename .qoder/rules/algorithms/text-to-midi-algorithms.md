@@ -1,3 +1,7 @@
+---
+trigger: always_on
+alwaysApply: true
+---
 # Algorithm Rules for Text-to-MIDI Conversion
 
 ## 1. CORE ALGORITHM ARCHITECTURE

@@ -199,6 +199,218 @@ h1 {
 /* Enhanced phonetic styling */
 .text-display .nasal { text-decoration: underline wavy #4CAF50; }
 .text-display .voiced { font-style: italic; color: #1976D2; }
+
+/* Chord Accompaniment Controls Styling */
+.settings fieldset legend:has-text('🎼 Acompanhamento de Acordes'),
+fieldset legend[title*="Acompanhamento"],
+fieldset:has(#enableChordAccompaniment) legend {
+    background: linear-gradient(135deg, #673ab7, #9c27b0);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(103, 58, 183, 0.3);
+}
+
+/* Chord accompaniment fieldset styling */
+fieldset:has(#enableChordAccompaniment) {
+    border: 2px solid #673ab7;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(103, 58, 183, 0.1);
+}
+
+/* Chord toggle switch styling */
+#enableChordAccompaniment {
+    width: 24px;
+    height: 24px;
+    accent-color: #673ab7;
+    transform: scale(1.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#enableChordAccompaniment:checked {
+    box-shadow: 0 0 8px rgba(103, 58, 183, 0.5);
+}
+
+#enableChordAccompaniment:hover {
+    transform: scale(1.3);
+}
+
+/* Chord pattern selector styling */
+#chordPatternSelector {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid #673ab7;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #673ab7;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 140px;
+}
+
+#chordPatternSelector:hover {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(103, 58, 183, 0.2);
+}
+
+#chordPatternSelector:focus {
+    outline: none;
+    border-color: #9c27b0;
+    box-shadow: 0 0 12px rgba(156, 39, 176, 0.4);
+}
+
+/* Chord volume sliders styling */
+#chordVolume,
+#bassVolume {
+    background: linear-gradient(to right, #e1bee7 0%, #673ab7 100%);
+    height: 8px;
+    border-radius: 6px;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+#chordVolume::-webkit-slider-thumb,
+#bassVolume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #673ab7 0%, #9c27b0 100%);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(103, 58, 183, 0.4);
+    transition: all 0.3s ease;
+}
+
+#chordVolume::-webkit-slider-thumb:hover,
+#bassVolume::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 12px rgba(103, 58, 183, 0.6);
+}
+
+#chordVolume::-moz-range-thumb,
+#bassVolume::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #673ab7 0%, #9c27b0 100%);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(103, 58, 183, 0.4);
+}
+
+/* Disabled state for chord controls */
+fieldset:has(#enableChordAccompaniment) .control-group:has(select:disabled),
+fieldset:has(#enableChordAccompaniment) .control-group:has(input[type="range"]:disabled) {
+    opacity: 0.5;
+    filter: grayscale(50%);
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+/* Chord control labels */
+fieldset:has(#enableChordAccompaniment) .control-group label {
+    color: #673ab7;
+    font-weight: 600;
+    font-size: 14px;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Chord success indicators */
+.chord-status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4CAF50;
+    margin-left: 8px;
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 0.6; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Enhanced Audio Message System */
+.audio-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    min-width: 200px;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: messageSlideIn 0.3s ease-out;
+    display: none;
+}
+
+.audio-message.success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.audio-message.error {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.audio-message.info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.audio-message.warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Legacy audio error support */
+.audio-error {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: messageSlideIn 0.3s ease-out;
+    display: none;
+}
 .text-display .fricative { letter-spacing: 1.5px; }
 .text-display .plosive { font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
 .text-display .liquid { text-decoration: underline #2196F3; }

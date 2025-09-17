@@ -30,12 +30,42 @@ const UIModule = (() => {
         const eqControls = createEQControls(currentEQ);
         settingsContainer.appendChild(eqControlsContainer(eqControls));
 
-        const modControls = createModulationControls(currentMod);
+        const modControls = createModulationControls(initialValues.mod || appConfig.EFFECTS.defaultModulation);
         settingsContainer.appendChild(modControlsContainer(modControls));
+
+        // Create linguistic analysis controls if available
+        if (typeof LinguisticIntegration !== 'undefined') {
+            const analysisControls = createLinguisticAnalysisControls(
+                initialValues.analysis || LinguisticIntegration.getDefaultSettings()
+            );
+            settingsContainer.appendChild(analysisControls);
+        }
         
-        // Add linguistic analysis section
-        const linguisticSection = createLinguisticAnalysisSection(initialValues);
-        settingsContainer.appendChild(linguisticSection);
+        // DISABLED: Create enhanced highlighting controls
+        // Text highlighting temporarily disabled for better implementation later
+        /*
+        if (typeof TextHighlighter !== 'undefined') {
+            const highlightControls = createTextHighlightControls(
+                initialValues.highlighting || { mode: 'character', speed: 1.0 }
+            );
+            settingsContainer.appendChild(highlightControls);
+        }
+        */
+        
+        // Create chord accompaniment controls - FORCE CREATION FOR DEBUGGING
+        console.log('🎼 DEBUGGING: ChordPlaybackEngine type:', typeof ChordPlaybackEngine);
+        console.log('🎼 DEBUGGING: ChordPlaybackEngine value:', ChordPlaybackEngine);
+        console.log('🎼 DEBUGGING: Window.ChordPlaybackEngine:', window.ChordPlaybackEngine);
+        
+        // Force create chord controls regardless of ChordPlaybackEngine status for testing
+        console.log('🎼 FORCE CREATING chord accompaniment controls for debugging...');
+        try {
+            const chordControls = createChordAccompanimentControls(initialValues.chords || {});
+            settingsContainer.appendChild(chordControls);
+            console.log('✓ Chord controls successfully added to UI');
+        } catch (error) {
+            console.error('❌ Error creating chord controls:', error);
+        }
         
         // Add storage section
         const storageSection = createStorageSection();
@@ -502,6 +532,135 @@ const UIModule = (() => {
         });
     }
 
+    /**
+     * Creates chord accompaniment controls UI
+     * @param {Object} initialSettings - Initial chord settings
+     * @returns {HTMLElement} Chord control fieldset
+     */
+    function createChordAccompanimentControls(initialSettings = {}) {
+        const fieldset = document.createElement('fieldset');
+        const legend = document.createElement('legend');
+        legend.textContent = '🎼 Acompanhamento de Acordes';
+        fieldset.appendChild(legend);
+        
+        // Enable/disable toggle
+        const enableContainer = document.createElement('div');
+        enableContainer.className = 'control-group';
+        
+        const enableLabel = document.createElement('label');
+        enableLabel.textContent = 'Ativar Acordes: ';
+        
+        const enableToggle = document.createElement('input');
+        enableToggle.type = 'checkbox';
+        enableToggle.id = 'enableChordAccompaniment';
+        enableToggle.checked = initialSettings.enabled || false;
+        
+        enableToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            if (typeof ChordPlaybackEngine !== 'undefined') {
+                ChordPlaybackEngine.setAccompanimentEnabled(enabled);
+            }
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ chords: { enabled } });
+            }
+            
+            // Enable/disable other chord controls
+            const chordControls = fieldset.querySelectorAll('select, input[type="range"]');
+            chordControls.forEach(control => {
+                if (control !== enableToggle) {
+                    control.disabled = !enabled;
+                }
+            });
+        });
+        
+        enableContainer.appendChild(enableLabel);
+        enableContainer.appendChild(enableToggle);
+        fieldset.appendChild(enableContainer);
+        
+        // Pattern selector
+        const patternContainer = document.createElement('div');
+        patternContainer.className = 'control-group';
+        
+        const patternLabel = document.createElement('label');
+        patternLabel.textContent = 'Padrão: ';
+        
+        const patternSelector = document.createElement('select');
+        patternSelector.id = 'chordPatternSelector';
+        
+        // Add patterns from ChordPlaybackEngine if available
+        if (typeof ChordPlaybackEngine !== 'undefined' && ChordPlaybackEngine.ACCOMPANIMENT_PATTERNS) {
+            Object.entries(ChordPlaybackEngine.ACCOMPANIMENT_PATTERNS).forEach(([key, pattern]) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = pattern.name;
+                if (key === (initialSettings.pattern || 'block')) {
+                    option.selected = true;
+                }
+                patternSelector.appendChild(option);
+            });
+        }
+        
+        patternSelector.addEventListener('change', (e) => {
+            if (typeof ChordPlaybackEngine !== 'undefined') {
+                ChordPlaybackEngine.setAccompanimentPattern(e.target.value);
+            }
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ chords: { pattern: e.target.value } });
+            }
+        });
+        
+        patternContainer.appendChild(patternLabel);
+        patternContainer.appendChild(patternSelector);
+        fieldset.appendChild(patternContainer);
+        
+        // Volume controls
+        const chordVolumeControl = createSliderControl(
+            'chordVolume', 'Volume Acordes', 0, 1, 
+            initialSettings.volume || 0.6, 0.05,
+            (value) => {
+                if (typeof ChordPlaybackEngine !== 'undefined') {
+                    // Use enhanced volume mixing for better audio balance
+                    if (ChordPlaybackEngine.setAccompanimentVolumeWithMixing) {
+                        ChordPlaybackEngine.setAccompanimentVolumeWithMixing(value, true);
+                    } else {
+                        ChordPlaybackEngine.setAccompanimentVolume(value);
+                    }
+                }
+                if (onSettingsChangeCallback) {
+                    onSettingsChangeCallback({ chords: { volume: value } });
+                }
+            }
+        );
+        
+        const bassVolumeControl = createSliderControl(
+            'bassVolume', 'Volume Baixo', 0, 1, 
+            initialSettings.bassVolume || 0.4, 0.05,
+            (value) => {
+                if (typeof ChordPlaybackEngine !== 'undefined') {
+                    ChordPlaybackEngine.setBassVolume(value);
+                }
+                if (onSettingsChangeCallback) {
+                    onSettingsChangeCallback({ chords: { bassVolume: value } });
+                }
+            }
+        );
+        
+        fieldset.appendChild(chordVolumeControl);
+        fieldset.appendChild(bassVolumeControl);
+        
+        // Initialize controls state
+        const initialEnabled = enableToggle.checked;
+        const chordControls = fieldset.querySelectorAll('select, input[type="range"]');
+        chordControls.forEach(control => {
+            if (control !== enableToggle) {
+                control.disabled = !initialEnabled;
+            }
+        });
+        
+        console.log('✓ Chord accompaniment controls created');
+        return fieldset;
+    }
+
     function createLinguisticAnalysisSection(initialValues = {}) {
         const fieldset = document.createElement('fieldset');
         const legend = document.createElement('legend');
@@ -637,6 +796,198 @@ const UIModule = (() => {
         fieldset.appendChild(highlightModeContainer);
         fieldset.appendChild(dialectContainer);
         fieldset.appendChild(infoContainer);
+        
+        return fieldset;
+    }
+
+    /**
+     * Creates chord accompaniment controls
+     * @param {Object} initialSettings - Initial chord settings
+     * @returns {HTMLElement} Chord controls container
+     */
+    function createChordAccompanimentControls(initialSettings = {}) {
+        const fieldset = document.createElement('fieldset');
+        const legend = document.createElement('legend');
+        legend.textContent = 'Acompanhamento de Acordes 🎵';
+        fieldset.appendChild(legend);
+        
+        const settings = {
+            enabled: false,
+            pattern: 'block',
+            volume: 0.6,
+            bassVolume: 0.4,
+            progression: 'I-V-vi-IV',
+            ...initialSettings
+        };
+        
+        // Enable/Disable toggle
+        const enableContainer = document.createElement('div');
+        enableContainer.classList.add('control-group');
+        
+        const enableLabel = document.createElement('label');
+        enableLabel.textContent = 'Ativar Acompanhamento:';
+        
+        const enableCheckbox = document.createElement('input');
+        enableCheckbox.type = 'checkbox';
+        enableCheckbox.id = 'chordEnabled';
+        enableCheckbox.checked = settings.enabled;
+        enableCheckbox.addEventListener('change', (e) => {
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ 
+                    chords: { ...settings, enabled: e.target.checked } 
+                });
+            }
+        });
+        
+        enableContainer.appendChild(enableLabel);
+        enableContainer.appendChild(enableCheckbox);
+        fieldset.appendChild(enableContainer);
+        
+        // Pattern selector
+        const patternContainer = document.createElement('div');
+        patternContainer.classList.add('control-group');
+        
+        const patternLabel = document.createElement('label');
+        patternLabel.textContent = 'Padrão:';
+        
+        const patternSelect = document.createElement('select');
+        patternSelect.id = 'chordPattern';
+        
+        const patterns = {
+            'block': 'Acordes Blocos',
+            'arpeggio': 'Arpejos',
+            'strum': 'Dedilhado',
+            'broken': 'Acordes Quebrados',
+            'waltz': 'Padrão Valsa'
+        };
+        
+        for (const [value, name] of Object.entries(patterns)) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = name;
+            if (value === settings.pattern) {
+                option.selected = true;
+            }
+            patternSelect.appendChild(option);
+        }
+        
+        patternSelect.addEventListener('change', (e) => {
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ 
+                    chords: { ...settings, pattern: e.target.value } 
+                });
+            }
+        });
+        
+        patternContainer.appendChild(patternLabel);
+        patternContainer.appendChild(patternSelect);
+        fieldset.appendChild(patternContainer);
+        
+        // Volume controls
+        const volumeContainer = document.createElement('div');
+        volumeContainer.classList.add('control-group');
+        
+        const volumeLabel = document.createElement('label');
+        volumeLabel.textContent = 'Volume Acordes:';
+        
+        const volumeSlider = document.createElement('input');
+        volumeSlider.type = 'range';
+        volumeSlider.min = '0';
+        volumeSlider.max = '1';
+        volumeSlider.step = '0.1';
+        volumeSlider.value = settings.volume;
+        volumeSlider.id = 'chordVolume';
+        
+        const volumeValue = document.createElement('span');
+        volumeValue.textContent = Math.round(settings.volume * 100) + '%';
+        
+        volumeSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            volumeValue.textContent = Math.round(value * 100) + '%';
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ 
+                    chords: { ...settings, volume: value } 
+                });
+            }
+        });
+        
+        volumeContainer.appendChild(volumeLabel);
+        volumeContainer.appendChild(volumeSlider);
+        volumeContainer.appendChild(volumeValue);
+        fieldset.appendChild(volumeContainer);
+        
+        // Bass volume controls
+        const bassVolumeContainer = document.createElement('div');
+        bassVolumeContainer.classList.add('control-group');
+        
+        const bassVolumeLabel = document.createElement('label');
+        bassVolumeLabel.textContent = 'Volume Baixo:';
+        
+        const bassVolumeSlider = document.createElement('input');
+        bassVolumeSlider.type = 'range';
+        bassVolumeSlider.min = '0';
+        bassVolumeSlider.max = '1';
+        bassVolumeSlider.step = '0.1';
+        bassVolumeSlider.value = settings.bassVolume;
+        bassVolumeSlider.id = 'chordBassVolume';
+        
+        const bassVolumeValue = document.createElement('span');
+        bassVolumeValue.textContent = Math.round(settings.bassVolume * 100) + '%';
+        
+        bassVolumeSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            bassVolumeValue.textContent = Math.round(value * 100) + '%';
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ 
+                    chords: { ...settings, bassVolume: value } 
+                });
+            }
+        });
+        
+        bassVolumeContainer.appendChild(bassVolumeLabel);
+        bassVolumeContainer.appendChild(bassVolumeSlider);
+        bassVolumeContainer.appendChild(bassVolumeValue);
+        fieldset.appendChild(bassVolumeContainer);
+        
+        // Chord progression
+        const progressionContainer = document.createElement('div');
+        progressionContainer.classList.add('control-group');
+        
+        const progressionLabel = document.createElement('label');
+        progressionLabel.textContent = 'Progressão:';
+        
+        const progressionSelect = document.createElement('select');
+        progressionSelect.id = 'chordProgression';
+        
+        const progressions = {
+            'I-V-vi-IV': 'I-V-vi-IV (Pop Comum)',
+            'vi-IV-I-V': 'vi-IV-I-V (Emocional)',
+            'I-vi-IV-V': 'I-vi-IV-V (Progressão dos Anos 50)',
+            'I-IV-V-I': 'I-IV-V-I (Blues/Rock)',
+            'ii-V-I': 'ii-V-I (Jazz)'
+        };
+        
+        for (const [value, name] of Object.entries(progressions)) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = name;
+            if (value === settings.progression) {
+                option.selected = true;
+            }
+            progressionSelect.appendChild(option);
+        }
+        
+        progressionSelect.addEventListener('change', (e) => {
+            if (onSettingsChangeCallback) {
+                onSettingsChangeCallback({ 
+                    chords: { ...settings, progression: e.target.value } 
+                });
+            }
+        });
+        
+        progressionContainer.appendChild(progressionLabel);
+        progressionContainer.appendChild(progressionSelect);
+        fieldset.appendChild(progressionContainer);
         
         return fieldset;
     }
